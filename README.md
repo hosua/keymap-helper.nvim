@@ -300,6 +300,9 @@ All are linked with `default = true`, so your theme or `nvim_set_hl` overrides t
 |---|---|
 | `KeymapHelperSection` | `Type` |
 | `KeymapHelperGroup` | `Title` |
+| `KeymapHelperMode` | `Constant` |
+| `KeymapHelperKey` | `Special` |
+| `KeymapHelperDesc` | `Comment` |
 | `KeymapHelperIntro` | `Comment` |
 | `KeymapHelperFooter` | `Comment` |
 | `KeymapHelperHintBorder` | `DiagnosticInfo` |

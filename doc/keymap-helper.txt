@@ -83,7 +83,9 @@ require("keymap-helper").track()                      *keymap-helper.track()*
 ==============================================================================
 HIGHLIGHTS                                            *keymap-helper-highlights*
 
-KeymapHelperSection (Type), KeymapHelperGroup (Title), KeymapHelperIntro
+KeymapHelperSection (Type), KeymapHelperGroup (Title), KeymapHelperMode
+(Constant), KeymapHelperKey (Special), KeymapHelperDesc (Comment),
+KeymapHelperIntro
 (Comment), KeymapHelperFooter (Comment), KeymapHelperHintBorder
 (DiagnosticInfo). All linked with default = true.
 

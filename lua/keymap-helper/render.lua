@@ -4,7 +4,9 @@
 --- getmousepos() use), so the window layer applies them without converting.
 local M = {}
 
-M.ROW_FORMAT = "    %-5s %-22s %s"
+M.ROW_INDENT = 4
+M.MODE_WIDTH = 5
+M.LHS_WIDTH = 22
 M.CHEVRON_OPEN = "▾"
 M.CHEVRON_CLOSED = "▸"
 
@@ -25,6 +27,11 @@ M.CHEVRON_CLOSED = "▸"
 --- @field regions KeymapHelperRegion[]
 --- @field body_end integer 0-based row of the last section line (-1 when empty)
 
+--- Pad to a display width, so multibyte keys keep the columns straight.
+local function pad(text, width)
+  return text .. (" "):rep(math.max(0, width - vim.fn.strdisplaywidth(text)))
+end
+
 --- @param state KeymapHelperState
 --- @param view KeymapHelperView|nil fold state; nil = each section's own `collapsed`
 --- @return KeymapHelperRender
@@ -35,6 +42,23 @@ function M.render(state, view)
     table.insert(lines, text)
     if hl then
       table.insert(spans, { row = #lines - 1, col_start = 0, col_end = -1, hl = hl })
+    end
+  end
+
+  -- One keymap row: modes | key | description, each with its own highlight.
+  local function add_row(row)
+    local modes, lhs = pad(row.modes, M.MODE_WIDTH), pad(row.lhs, M.LHS_WIDTH)
+    table.insert(lines, (" "):rep(M.ROW_INDENT) .. modes .. " " .. lhs .. " " .. row.desc)
+    local r = #lines - 1
+    local key_start = M.ROW_INDENT + #modes + 1
+    local desc_start = key_start + #lhs + 1
+    table.insert(
+      spans,
+      { row = r, col_start = M.ROW_INDENT, col_end = M.ROW_INDENT + #row.modes, hl = "KeymapHelperMode" }
+    )
+    table.insert(spans, { row = r, col_start = key_start, col_end = key_start + #row.lhs, hl = "KeymapHelperKey" })
+    if row.desc ~= "" then
+      table.insert(spans, { row = r, col_start = desc_start, col_end = -1, hl = "KeymapHelperDesc" })
     end
   end
 
@@ -71,7 +95,7 @@ function M.render(state, view)
         add("  " .. group.title, "KeymapHelperGroup")
       end
       for _, row in ipairs(group.rows) do
-        add(M.ROW_FORMAT:format(row.modes, row.lhs, row.desc))
+        add_row(row)
       end
     end
   end
