@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "repo": "hosua/keymap-helper.nvim",
+  "created": "2026-10-03",
+  "updated": "2026-10-03",
+  "declined_all": false,
+  "components": {
+    "readme": {
+      "status": "enabled",
+      "decided": "2026-10-03",
+      "notes": "README.md existed before; real README is authored on feature/auto-detect-sections (unmerged). Rewrite deferred until it merges. Requirement: plugin must install <leader>km (opens :KeymapHelper) by default; not yet in code on main or the feature branch, so do not document it until implemented.",
+      "files": [
+        "README.md"
+      ]
+    }
+  }
+}
