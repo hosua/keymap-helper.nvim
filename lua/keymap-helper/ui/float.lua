@@ -63,15 +63,23 @@ end
 
 --- Non-focusable, self-closing hint. Closes on the first cursor movement,
 --- insert, or buffer switch, so `nvim some-file` is never interrupted.
---- @param text string[]
+--- @param lines string[]
 --- @param opts { timeout_ms: integer }
 --- @return integer win
-function M.toast(text, opts)
+function M.toast(lines, opts)
+  -- A blank line above and below and two columns either side: a bare line
+  -- of text against the border reads as cramped.
+  local text = { "" }
+  for _, line in ipairs(lines) do
+    table.insert(text, "  " .. line .. "  ")
+  end
+  table.insert(text, "")
+
   local width = 0
   for _, l in ipairs(text) do
     width = math.max(width, vim.fn.strdisplaywidth(l))
   end
-  width = math.min(width, vim.o.columns - 4)
+  width = math.min(width, math.max(vim.o.columns - 4, 20))
 
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, text)
