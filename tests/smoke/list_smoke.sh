@@ -18,6 +18,8 @@ smoke_expect 'n normal · i insert'
 smoke_expect '▾ Custom \([0-9]+\)  ·  fixture'
 smoke_expect '  General'
 smoke_expect 'n,x +<leader>gb +git blame line'
+smoke_expect 'i +jk'
+smoke_reject 'yank permalink'
 smoke_expect '▸ Default \([0-9]+\)'
 smoke_reject '<leader>zz'
 

@@ -38,3 +38,41 @@ describe("collect.live / command_key", function()
     vim.keymap.del("n", "<leader>zq")
   end)
 end)
+
+describe("collect.own_mode", function()
+  local want = { n = true, v = true, x = true, i = true, t = true }
+
+  it("maps a returned map's mode to its own mode", function()
+    eq("n", collect.own_mode("n", "n", want))
+    eq("n", collect.own_mode(" ", "n", want))
+    eq("v", collect.own_mode("v", "x", want))
+    eq("x", collect.own_mode("x", "v", want))
+    eq(nil, collect.own_mode("s", "v", want))
+    eq("i", collect.own_mode("!", "i", want))
+    eq("x", collect.own_mode("v", "x", { x = true }))
+  end)
+end)
+
+describe("collect.live own modes", function()
+  it("reports an x-only map once, with mode x", function()
+    vim.g.mapleader = " "
+    vim.keymap.set("x", "<leader>zx", "<cmd>echo 1<cr>", { desc = "x only" })
+    local hits = {}
+    for _, m in ipairs(collect.live { "v", "x" }) do
+      if m.desc == "x only" then
+        table.insert(hits, m.mode)
+      end
+    end
+    pcall(vim.keymap.del, "x", "<leader>zx")
+    eq({ "x" }, hits)
+  end)
+end)
+
+describe("collect.own_mode partial masks", function()
+  it("keeps maps whose mode is a partial mask such as nox or nv", function()
+    local want = { n = true, v = true, x = true }
+    eq("n", collect.own_mode("nox", "n", want))
+    eq("x", collect.own_mode("nox", "x", want))
+    eq("n", collect.own_mode("nv", "n", want))
+  end)
+end)

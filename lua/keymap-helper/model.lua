@@ -7,6 +7,8 @@ local M = {}
 
 local scan = require "keymap-helper.scan"
 local collect = require "keymap-helper.collect"
+local match = require "keymap-helper.match"
+local group = require "keymap-helper.group"
 
 --- @class KeymapHelperRow
 --- @field modes string
@@ -64,10 +66,38 @@ function M.section_paths(section)
 end
 
 --- @class KeymapHelperData
---- @field scanned table<integer, KeymapHelperScanEntry[]> section index -> parsed calls
---- @field live KeymapHelperLiveMap[]
+--- @field scanned table<integer, KeymapHelperScanEntry[]> section index -> parsed calls (only for sections with files)
+--- @field live KeymapHelperLiveMap[] each may carry .origin (nil = unknown)
+--- @field wk_groups table<string, string>|nil display prefix -> which-key group name
+--- @field stats { files: integer, capped: boolean }|nil config index stats, for :checkhealth
 
---- Read every section's files and the live mappings.
+--- Mode letters of every scanned entry, so a file that maps `x` or `t` is
+--- looked up in the live maps even when `cfg.modes` leaves it out.
+--- @param cfg KeymapHelperConfig
+--- @param scanned table<integer, KeymapHelperScanEntry[]>
+--- @return string[]
+local function query_modes(cfg, scanned)
+  local out, seen = {}, {}
+  local function add(m)
+    if not seen[m] then
+      seen[m] = true
+      table.insert(out, m)
+    end
+  end
+  for _, m in ipairs(cfg.modes) do
+    add(m)
+  end
+  for i in ipairs(cfg.sections) do
+    for _, e in ipairs(scanned[i] or {}) do
+      for m in e.modes:gmatch "[^,]+" do
+        add(m)
+      end
+    end
+  end
+  return out
+end
+
+--- Read every section's files, the live mappings and where each came from.
 --- @param cfg KeymapHelperConfig
 --- @return KeymapHelperData
 function M.gather(cfg)
@@ -89,30 +119,119 @@ function M.gather(cfg)
     end
     scanned[i] = entries
   end
-  return { scanned = scanned, live = collect.live(cfg.modes) }
+
+  local origin = require "keymap-helper.origin"
+  local ctx, stats = origin.context(cfg, collect.normalize)
+  local live = {}
+  for _, m in ipairs(collect.live(query_modes(cfg, scanned))) do
+    table.insert(live, vim.tbl_extend("force", m, { origin = origin.resolve(m, ctx) }))
+  end
+
+  local wk_groups = {}
+  if cfg.detect.which_key then
+    wk_groups = require("keymap-helper.whichkey").load(collect.display)
+  end
+  return { scanned = scanned, live = live, wk_groups = wk_groups, stats = stats }
 end
 
---- Group consecutive rows that share a header, keeping file order.
---- @param entries KeymapHelperScanEntry[]
---- @param grouped boolean
---- @return KeymapHelperGroup[]
-local function group_entries(entries, grouped)
-  if not grouped then
-    local rows = {}
-    for _, e in ipairs(entries) do
-      table.insert(rows, { modes = e.modes, lhs = e.lhs, desc = e.desc })
+--- mode .. canonical lhs -> { group, order } for one file-backed section.
+local function file_set(entries, normalize)
+  local set = {}
+  for n, e in ipairs(entries) do
+    local key = normalize(e.lhs)
+    for mode in e.modes:gmatch "[^,]+" do
+      if set[mode .. key] == nil then
+        set[mode .. key] = { group = e.group, order = n }
+      end
     end
-    return #rows > 0 and { { rows = rows } } or {}
   end
-  local groups, current = {}, nil
-  for _, e in ipairs(entries) do
-    if not current or current.title ~= e.group then
-      current = { title = e.group, rows = {} }
-      table.insert(groups, current)
+  return set
+end
+
+--- Section indices in match order: ordinary sections, then `rest` ones.
+local function match_order(sections)
+  local order, has_rest = {}, false
+  for i, s in ipairs(sections) do
+    if not s.rest then
+      table.insert(order, i)
     end
-    table.insert(current.rows, { modes = e.modes, lhs = e.lhs, desc = e.desc })
   end
-  return groups
+  for i, s in ipairs(sections) do
+    if s.rest then
+      has_rest = true
+      table.insert(order, i)
+    end
+  end
+  return order, has_rest
+end
+
+local UNKNOWN_ORIGIN = { kind = "unknown", via = "none" }
+
+--- Deal every live map to the first section that wants it.
+--- @return table<integer, KeymapHelperItem[]> items per section index (the implicit Other is #sections + 1)
+local function assign(cfg, data, normalize, display)
+  local sections = cfg.sections
+  local filesets = {}
+  for i, s in ipairs(sections) do
+    if match.has_files(s) then
+      filesets[i] = file_set(data.scanned[i] or {}, normalize)
+    end
+  end
+  local order, has_rest = match_order(sections)
+  local items = {}
+
+  for _, live in ipairs(data.live) do
+    local desc = live.desc or ""
+    local m = { mode = live.mode, lhs = display(live.lhs), key = live.lhs, desc = desc, rhs = live.rhs }
+    local origin = live.origin or UNKNOWN_ORIGIN
+    local visible = cfg.show_undocumented == true or (desc ~= "" and not live.lhs:find "^<Plug>")
+    local home
+    for _, i in ipairs(order) do
+      local fh = filesets[i] and filesets[i][live.mode .. live.lhs]
+      if (visible or fh) and match.section(sections[i], m, origin, fh ~= nil) then
+        home = i
+        items[i] = items[i] or {}
+        table.insert(items[i], {
+          modes = { live.mode },
+          lhs = m.lhs,
+          desc = desc,
+          group = fh and fh.group or origin.group,
+          order = fh and fh.order or origin.order,
+          plugin = origin.plugin,
+        })
+        break
+      end
+    end
+    if not home and visible and not has_rest then
+      local other = #sections + 1
+      items[other] = items[other] or {}
+      table.insert(items[other], {
+        modes = { live.mode },
+        lhs = m.lhs,
+        desc = desc,
+        group = origin.group,
+        order = origin.order,
+        plugin = origin.plugin,
+      })
+    end
+  end
+  return items
+end
+
+local function section_state(id, s, items, wk_groups)
+  local groups = group.build(group.merge(items or {}), s.group_by or "none", wk_groups)
+  local count = 0
+  for _, g in ipairs(groups) do
+    count = count + #g.rows
+  end
+  return {
+    id = id,
+    title = s.title,
+    subtitle = s.subtitle,
+    groups = groups,
+    count = count,
+    collapsed = s.collapsed == true,
+  }
 end
 
 --- @param cfg KeymapHelperConfig
@@ -122,52 +241,19 @@ end
 --- @param env { mapleader: string|nil, maplocalleader: string|nil }|nil leader values; nil = no intro
 --- @return KeymapHelperState
 function M.build(cfg, data, normalize, display, env)
-  -- mode .. canonical lhs of everything a file-backed section accounts for,
-  -- so `rest` sections show only what is left.
-  local claimed = {}
-  for i in ipairs(cfg.sections) do
-    for _, e in ipairs(data.scanned[i] or {}) do
-      local key = normalize(e.lhs)
-      for mode in e.modes:gmatch "[^,]+" do
-        claimed[mode .. key] = true
-      end
-    end
-  end
+  local items = assign(cfg, data, normalize, display)
+  local wk_groups = data.wk_groups or {}
 
-  local rest_rows = {}
-  for _, m in ipairs(data.live) do
-    if not claimed[m.mode .. m.lhs] and m.desc and m.desc ~= "" then
-      table.insert(rest_rows, { modes = m.mode, lhs = display(m.lhs), desc = m.desc })
-    end
-  end
-  table.sort(rest_rows, function(a, b)
-    if a.lhs == b.lhs then
-      return a.modes < b.modes
-    end
-    return a.lhs < b.lhs
-  end)
-
-  local sections, rest_used = {}, false
+  local sections = {}
   for i, s in ipairs(cfg.sections) do
-    local groups
-    if s.rest and not rest_used then
-      rest_used = true
-      groups = #rest_rows > 0 and { { rows = rest_rows } } or {}
-    else
-      groups = group_entries(data.scanned[i] or {}, s.group_by == "header")
+    if not s.hidden then
+      table.insert(sections, section_state(i, s, items[i], wk_groups))
     end
-    local count = 0
-    for _, g in ipairs(groups) do
-      count = count + #g.rows
-    end
-    table.insert(sections, {
-      id = i,
-      title = s.title,
-      subtitle = s.subtitle,
-      groups = groups,
-      count = count,
-      collapsed = s.collapsed == true,
-    })
+  end
+  local other = #cfg.sections + 1
+  if items[other] then
+    local implicit = { title = "Other", rest = true, collapsed = true }
+    table.insert(sections, section_state(other, implicit, items[other], wk_groups))
   end
 
   local intro

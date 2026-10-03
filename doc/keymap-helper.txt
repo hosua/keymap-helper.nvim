@@ -1,0 +1,86 @@
+*keymap-helper.txt*  Grouped, collapsible keymap list for any config
+
+==============================================================================
+CONTENTS                                              *keymap-helper*
+
+A list of every keymap, sorted by where it came from: your config, each
+plugin, or Neovim itself. The README has the full option reference:
+https://github.com/hosua/keymap-helper.nvim
+
+==============================================================================
+COMMANDS                                              *keymap-helper-commands*
+
+:KeymapHelper [show]                                  *:KeymapHelper*
+        Open the keymap list.
+
+:KeymapHelper hint
+        Show the startup hint again.
+
+:KeymapHelper health
+        Same as `:checkhealth keymap-helper`.
+
+Suggested mapping: >lua
+    vim.keymap.set("n", "<leader>km", "<cmd>KeymapHelper<cr>", { desc = "keymap list" })
+<
+
+Keys inside the list:
+    <CR> za <Tab>   toggle the section under the cursor
+    l / h           open / close it
+    zR / zM         open / close every section
+    <LeftMouse>     on a section header: toggle it
+    q <Esc>         close
+
+==============================================================================
+SETUP                                                 *keymap-helper-setup*
+
+require("keymap-helper").setup({opts})                *keymap-helper.setup()*
+        Optional. Every entry point uses the defaults when setup() was not
+        called. Unknown keys are reported. Main options:
+
+        sections            list of sections, see |keymap-helper-sections|
+        show_undocumented   show maps without desc and <Plug> maps (false)
+        detect              { scan_config, max_files, lazy_keys, which_key }
+        hint                { enabled, message, timeout_ms, position }
+                            position: "center" (default) or "bottom_right"
+        intro               { enabled, collapsed }
+        window              { title, max_width, footer }
+
+==============================================================================
+SECTIONS                                              *keymap-helper-sections*
+
+Each live map goes to the first section whose matchers all pass; sections
+with `rest = true` are tried last. Matchers:
+
+    config = true          maps set by your config
+    builtin = true         maps set by Neovim
+    plugin = true|"name"   any plugin, or the named one(s)
+    files = {...}          maps set in these files (relative to config dir)
+    runtime_files = {...}  like files, found on 'runtimepath'
+    lhs = "pattern"        Lua pattern on the displayed lhs
+    desc = "pattern"       Lua pattern on the desc
+    mode = "n"|{...}       only these modes
+    fn = function(map, origin) return boolean end
+
+Other keys: title, subtitle, rest, collapsed, hidden, group_by ("header",
+"plugin", "leader_prefix", "none").
+
+==============================================================================
+TRACK                                                 *keymap-helper-track*
+
+require("keymap-helper").track()                      *keymap-helper.track()*
+        Wrap |vim.keymap.set| so every map records the file that set it.
+        Call it first thing in init.lua, before plugins load: >lua
+            local kh = vim.fn.stdpath "data" .. "/lazy/keymap-helper.nvim"
+            if vim.uv.fs_stat(kh) then
+              vim.opt.rtp:prepend(kh)
+              require("keymap-helper").track()
+            end
+<
+==============================================================================
+HIGHLIGHTS                                            *keymap-helper-highlights*
+
+KeymapHelperSection (Type), KeymapHelperGroup (Title), KeymapHelperIntro
+(Comment), KeymapHelperFooter (Comment), KeymapHelperHintBorder
+(DiagnosticInfo). All linked with default = true.
+
+ vim:tw=78:ts=8:ft=help:norl:
