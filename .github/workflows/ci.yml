@@ -24,3 +24,5 @@ jobs:
           args: --check .
       - run: make test
       - run: make integration
+      - run: sudo apt-get install -y tmux
+      - run: make smoke
