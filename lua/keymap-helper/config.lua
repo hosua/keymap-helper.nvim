@@ -43,6 +43,8 @@ M.defaults = {
     -- "center" or "bottom_right".
     position = "center",
   },
+  -- Short "how to read this list" header (leader keys, mode letters).
+  intro = { enabled = true },
 }
 
 local resolved

@@ -76,3 +76,26 @@ describe("model.build", function()
     eq(0, s.sections[1].count)
   end)
 end)
+
+describe("model.build intro", function()
+  local base = vim.tbl_extend("force", cfg, { intro = { enabled = true } })
+  local env = { mapleader = " ", maplocalleader = nil }
+
+  it("builds the intro from env when enabled", function()
+    local state = model.build(base, data, ident, ident, env)
+    eq(require("keymap-helper.intro").build(" ", nil), state.intro)
+  end)
+
+  it("has no intro without env", function()
+    eq(nil, model.build(base, data, ident, ident).intro)
+  end)
+
+  it("has no intro when intro.enabled is false", function()
+    local off = vim.tbl_extend("force", cfg, { intro = { enabled = false } })
+    eq(nil, model.build(off, data, ident, ident, env).intro)
+  end)
+
+  it("has no intro when cfg.intro is absent", function()
+    eq(nil, model.build(cfg, data, ident, ident, env).intro)
+  end)
+end)

@@ -27,6 +27,7 @@ local collect = require "keymap-helper.collect"
 --- @class KeymapHelperState
 --- @field sections KeymapHelperSectionState[]
 --- @field footer string
+--- @field intro KeymapHelperIntro|nil
 
 --- Resolve a section's file list to absolute paths that exist.
 --- @param section KeymapHelperSection
@@ -108,8 +109,9 @@ end
 --- @param data KeymapHelperData
 --- @param normalize fun(lhs: string): string
 --- @param display fun(lhs: string): string
+--- @param env { mapleader: string|nil, maplocalleader: string|nil }|nil leader values; nil = no intro
 --- @return KeymapHelperState
-function M.build(cfg, data, normalize, display)
+function M.build(cfg, data, normalize, display, env)
   -- mode .. canonical lhs of everything a file-backed section accounts for,
   -- so `rest` sections show only what is left.
   local claimed = {}
@@ -151,7 +153,12 @@ function M.build(cfg, data, normalize, display)
     table.insert(sections, { id = i, title = s.title, subtitle = s.subtitle, groups = groups, count = count })
   end
 
-  return { sections = sections, footer = cfg.window.footer }
+  local intro
+  if env and cfg.intro and cfg.intro.enabled then
+    intro = require("keymap-helper.intro").build(env.mapleader, env.maplocalleader)
+  end
+
+  return { sections = sections, footer = cfg.window.footer, intro = intro }
 end
 
 return M

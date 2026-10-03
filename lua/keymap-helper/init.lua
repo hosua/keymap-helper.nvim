@@ -34,7 +34,8 @@ function M.show()
   local collect = require "keymap-helper.collect"
   local model = require "keymap-helper.model"
   require("keymap-helper.highlights").apply()
-  local state = model.build(cfg, model.gather(cfg), collect.normalize, collect.display)
+  local env = { mapleader = vim.g.mapleader, maplocalleader = vim.g.maplocalleader }
+  local state = model.build(cfg, model.gather(cfg), collect.normalize, collect.display, env)
   local r = require("keymap-helper.render").render(state)
   return (
     require("keymap-helper.ui.float").open_list(r, { title = cfg.window.title, max_width = cfg.window.max_width })

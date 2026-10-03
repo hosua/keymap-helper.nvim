@@ -7,6 +7,7 @@ M.LINKS = {
   KeymapHelperSection = "Type",
   KeymapHelperGroup = "Title",
   KeymapHelperFooter = "Comment",
+  KeymapHelperIntro = "Comment",
   KeymapHelperHintBorder = "DiagnosticInfo",
 }
 
