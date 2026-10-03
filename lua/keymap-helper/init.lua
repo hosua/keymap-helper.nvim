@@ -51,7 +51,10 @@ function M.hint()
   local text = (cfg.hint.message:gsub("{key}", function()
     return key
   end))
-  return require("keymap-helper.ui.float").toast({ text }, { timeout_ms = cfg.hint.timeout_ms })
+  return require("keymap-helper.ui.float").toast(
+    { text },
+    { timeout_ms = cfg.hint.timeout_ms, position = cfg.hint.position }
+  )
 end
 
 return M

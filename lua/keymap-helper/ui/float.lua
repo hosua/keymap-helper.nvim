@@ -1,5 +1,7 @@
 --- The only module that opens windows: the keymap list float and the
 --- startup hint toast.
+local layout = require "keymap-helper.ui.layout"
+
 local M = {}
 
 local NS = vim.api.nvim_create_namespace "keymap_helper"
@@ -64,7 +66,7 @@ end
 --- Non-focusable, self-closing hint. Closes on the first cursor movement,
 --- insert, or buffer switch, so `nvim some-file` is never interrupted.
 --- @param lines string[]
---- @param opts { timeout_ms: integer }
+--- @param opts { timeout_ms: integer, position: "center"|"bottom_right"|nil }
 --- @return integer win
 function M.toast(lines, opts)
   -- A blank line above and below and two columns either side: a bare line
@@ -79,7 +81,7 @@ function M.toast(lines, opts)
   for _, l in ipairs(text) do
     width = math.max(width, vim.fn.strdisplaywidth(l))
   end
-  width = math.min(width, math.max(vim.o.columns - 4, 20))
+  local geo = layout.toast(width, #text, vim.o.columns, vim.o.lines, opts.position)
 
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, text)
@@ -88,10 +90,10 @@ function M.toast(lines, opts)
 
   local win = vim.api.nvim_open_win(buf, false, {
     relative = "editor",
-    width = width,
-    height = #text,
-    row = math.max(0, vim.o.lines - #text - 4),
-    col = math.max(0, vim.o.columns - width - 3),
+    width = geo.width,
+    height = geo.height,
+    row = geo.row,
+    col = geo.col,
     style = "minimal",
     border = "rounded",
     focusable = false,
