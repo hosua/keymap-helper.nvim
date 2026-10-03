@@ -12,6 +12,14 @@
       "files": [
         "README.md"
       ]
+    },
+    "readme-maintenance": {
+      "status": "enabled",
+      "decided": "2026-10-03",
+      "notes": "guard: readme-drift.yml (warn). No audit yet: README drift check waits for feature/auto-detect-sections to merge.",
+      "files": [
+        ".github/workflows/readme-drift.yml"
+      ]
     }
   }
 }
