@@ -50,3 +50,54 @@ describe("render", function()
     eq({ { row = 0, kind = "section", id = 1 }, { row = 8, kind = "section", id = 2 } }, r.regions)
   end)
 end)
+
+describe("render with intro", function()
+  local intro = require("keymap-helper.intro").build(" ", nil)
+  local state = {
+    intro = intro,
+    sections = {
+      {
+        id = 1,
+        title = "Custom",
+        count = 1,
+        groups = { { title = "General", rows = { { modes = "n", lhs = ";", desc = "cmd" } } } },
+      },
+    },
+    footer = "q or <Esc> to close",
+  }
+  local r = render.render(state)
+
+  it("emits title, the 7 intro lines, a blank line, then the first section", function()
+    eq("  How to read this list", r.lines[1])
+    eq(intro.lines, { unpack(r.lines, 2, 8) })
+    eq("", r.lines[9])
+    eq("  Custom", r.lines[10])
+    eq("", r.lines[11])
+    eq("  General", r.lines[12])
+  end)
+
+  it("highlights the title as a section and non-empty intro lines as KeymapHelperIntro", function()
+    local function find(row)
+      for _, s in ipairs(r.spans) do
+        if s.row == row then
+          return s
+        end
+      end
+    end
+    eq({ row = 0, col_start = 0, col_end = -1, hl = "KeymapHelperSection" }, find(0))
+    for i, line in ipairs(intro.lines) do
+      if line ~= "" then
+        eq({ row = i, col_start = 0, col_end = -1, hl = "KeymapHelperIntro" }, find(i), "intro row " .. i)
+      end
+    end
+  end)
+
+  it("records an intro region at row 0 and shifts section regions", function()
+    eq({ { row = 0, kind = "section", id = "intro" }, { row = 9, kind = "section", id = 1 } }, r.regions)
+  end)
+
+  it("leaves output without intro unchanged", function()
+    local plain = { sections = state.sections, footer = state.footer }
+    eq("  Custom", render.render(plain).lines[1])
+  end)
+end)

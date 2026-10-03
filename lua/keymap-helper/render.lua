@@ -34,6 +34,15 @@ function M.render(state)
     end
   end
 
+  if state.intro then
+    add("  " .. state.intro.title, "KeymapHelperSection")
+    table.insert(regions, { row = #lines - 1, kind = "section", id = "intro" })
+    for _, line in ipairs(state.intro.lines) do
+      add(line, "KeymapHelperIntro")
+    end
+    add ""
+  end
+
   for i, section in ipairs(state.sections) do
     if i > 1 then
       add ""
