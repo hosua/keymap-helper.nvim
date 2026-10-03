@@ -116,7 +116,7 @@ describe("model.build", function()
         return s.id
       end, state.sections)
     )
-    eq("q to close", state.footer)
+    eq(require("keymap-helper.ui.keys").footer(), state.footer)
   end)
 
   it("file sections show live maps (even without desc) grouped by header", function()

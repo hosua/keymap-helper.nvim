@@ -100,16 +100,18 @@ function M.open_list(state, view, opts)
       end, { buffer = buf, nowait = true, silent = true, desc = desc })
     end
   end
-  bind({ "<CR>", "za", "<Tab>" }, "toggle section", "toggle")
-  bind({ "l" }, "open section", "open")
-  bind({ "h" }, "close section", "close")
+  local A = require("keymap-helper.ui.keys").ACTIONS
+  bind(A.toggle.keys, A.toggle.desc, "toggle")
+  bind(A.open.keys, A.open.desc, "open")
+  bind(A.close.keys, A.close.desc, "close")
 
-  vim.keymap.set("n", "zR", function()
-    apply({ type = "open_all" }, cursor_section())
-  end, { buffer = buf, nowait = true, silent = true, desc = "open all sections" })
-  vim.keymap.set("n", "zM", function()
-    apply({ type = "close_all" }, cursor_section())
-  end, { buffer = buf, nowait = true, silent = true, desc = "close all sections" })
+  for name, key in pairs { open_all = "open_all", close_all = "close_all" } do
+    for _, lhs in ipairs(A[name].keys) do
+      vim.keymap.set("n", lhs, function()
+        apply({ type = key }, cursor_section())
+      end, { buffer = buf, nowait = true, silent = true, desc = A[name].desc })
+    end
+  end
 
   vim.keymap.set("n", "<LeftMouse>", function()
     local pos = vim.fn.getmousepos()
@@ -127,12 +129,12 @@ function M.open_list(state, view, opts)
     vim.api.nvim_feedkeys(vim.keycode "<LeftMouse>", "n", false)
   end, { buffer = buf, nowait = true, silent = true, desc = "toggle section / click" })
 
-  for _, key in ipairs { "q", "<Esc>" } do
+  for _, key in ipairs(A.quit.keys) do
     vim.keymap.set("n", key, function()
       if vim.api.nvim_win_is_valid(win) then
         vim.api.nvim_win_close(win, true)
       end
-    end, { buffer = buf, nowait = true, silent = true, desc = "close keymap list" })
+    end, { buffer = buf, nowait = true, silent = true, desc = A.quit.desc })
   end
 
   return win, buf

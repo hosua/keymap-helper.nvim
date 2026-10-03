@@ -76,8 +76,12 @@ describe("config", function()
     eq(true, cfg.sections[1].collapsed)
   end)
 
-  it("describes the section keys in the footer", function()
-    eq("<CR> toggle section · zR open all · zM close all · q close", config.defaults.window.footer)
+  it("has no footer option: the footer is generated from the bound keys", function()
+    eq(nil, config.defaults.window.footer)
+    local _, unknown = quiet(function()
+      return config.resolve { window = { footer = "x" } }
+    end)
+    eq({ "window.footer" }, unknown)
   end)
 end)
 

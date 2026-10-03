@@ -44,7 +44,7 @@ require("keymap-helper").setup({opts})                *keymap-helper.setup()*
         hint                { enabled, message, timeout_ms, position }
                             position: "center" (default) or "bottom_right"
         intro               { enabled, collapsed }
-        window              { title, max_width, footer }
+        window              { title, max_width }
 
 ==============================================================================
 SECTIONS                                              *keymap-helper-sections*

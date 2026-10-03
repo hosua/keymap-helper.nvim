@@ -72,7 +72,7 @@ describe("keymap", function()
   it("collect.command_key() finds the mapped key", function()
     local km = fresh()
     km.apply()
-    eq("<Space>km", require("keymap-helper.collect").command_key())
+    eq("<leader>km", require("keymap-helper.collect").command_key())
   end)
 
   it("setup() honours the keymap option", function()

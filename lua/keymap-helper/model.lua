@@ -269,7 +269,7 @@ function M.build(cfg, data, normalize, display, env)
 
   return {
     sections = sections,
-    footer = cfg.window.footer,
+    footer = require("keymap-helper.ui.keys").footer(),
     intro = intro,
     intro_collapsed = intro ~= nil and cfg.intro.collapsed == true,
   }

@@ -200,7 +200,6 @@ require("keymap-helper").setup {
   window = {
     title = " Keymaps ",
     max_width = 96,
-    footer = "<CR> toggle section · zR open all · zM close all · q close",
   },
   hint = {
     enabled = true,

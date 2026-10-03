@@ -34,7 +34,7 @@ describe("collect.live / command_key", function()
     end
     ok(found, "mapping not reported")
     eq("<Space>zq", found.lhs)
-    eq("<Space>zq", collect.command_key())
+    eq("<leader>zq", collect.command_key())
     vim.keymap.del("n", "<leader>zq")
   end)
 end)

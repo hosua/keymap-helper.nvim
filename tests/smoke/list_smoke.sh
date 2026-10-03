@@ -7,7 +7,7 @@ tmp=$(mktemp -d)
 env_xdg=(env XDG_CONFIG_HOME="$tmp/c" XDG_DATA_HOME="$tmp/d" XDG_STATE_HOME="$tmp/s" XDG_CACHE_HOME="$tmp/x")
 
 smoke_start 120 40 "${env_xdg[@]}" nvim --clean -u tests/smoke/init.lua
-smoke_expect 'Type <Space>km to view a list of all keymappings!'
+smoke_expect 'Type <leader>km to view a list of all keymappings!'
 smoke_reject 'E[0-9]+:'
 
 smoke_keys ' ' 'k' 'm'
