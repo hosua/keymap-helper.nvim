@@ -13,7 +13,7 @@ map("n", "<leader>zz", "<cmd>echo 'z'<cr>", { desc = "unclaimed smoke map" })
 require("keymap-helper").setup {
   sections = {
     { title = "Custom", subtitle = "fixture", files = { root .. "/tests/fixtures/mappings.lua" }, group_by = "header" },
-    { title = "Default", rest = true },
+    { title = "Default", rest = true, collapsed = true },
   },
   hint = { timeout_ms = 60000 },
 }

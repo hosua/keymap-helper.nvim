@@ -15,13 +15,14 @@ local M = {}
 --- @field runtime_files string[]|nil looked up on 'runtimepath' (e.g. a plugin's mappings file)
 --- @field group_by "header"|"none"|nil "header" splits on box-comment headers in the files
 --- @field rest boolean|nil collect every unclaimed live mapping
+--- @field collapsed boolean|nil start folded to just the header line (default false)
 
 --- @class KeymapHelperConfig
 M.defaults = {
   --- @type KeymapHelperSection[]
   sections = {
     { title = "Your config", subtitle = "lua/mappings.lua", files = { "lua/mappings.lua" }, group_by = "header" },
-    { title = "Everything else", subtitle = "every other mapping with a description", rest = true },
+    { title = "Everything else", subtitle = "every other mapping with a description", rest = true, collapsed = true },
   },
   -- Lua pattern for a section header comment; capture 1 is the header text.
   -- The default matches `-- │ General │` box-drawing headers.
@@ -33,7 +34,7 @@ M.defaults = {
   window = {
     title = " Keymaps ",
     max_width = 96,
-    footer = "q or <Esc> to close",
+    footer = "<CR> toggle section · zR open all · zM close all · q close",
   },
   hint = {
     enabled = true,
@@ -44,7 +45,7 @@ M.defaults = {
     position = "center",
   },
   -- Short "how to read this list" header (leader keys, mode letters).
-  intro = { enabled = true },
+  intro = { enabled = true, collapsed = false },
 }
 
 local resolved
@@ -72,6 +73,7 @@ local function validate(cfg)
     vim.validate(name .. ".files", s.files, "table", true)
     vim.validate(name .. ".runtime_files", s.runtime_files, "table", true)
     vim.validate(name .. ".rest", s.rest, "boolean", true)
+    vim.validate(name .. ".collapsed", s.collapsed, "boolean", true)
   end
   vim.validate("header_pattern", cfg.header_pattern, "string")
   vim.validate("modes", cfg.modes, "table")

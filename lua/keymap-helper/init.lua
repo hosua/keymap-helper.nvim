@@ -36,9 +36,12 @@ function M.show()
   require("keymap-helper.highlights").apply()
   local env = { mapleader = vim.g.mapleader, maplocalleader = vim.g.maplocalleader }
   local state = model.build(cfg, model.gather(cfg), collect.normalize, collect.display, env)
-  local r = require("keymap-helper.render").render(state)
   return (
-    require("keymap-helper.ui.float").open_list(r, { title = cfg.window.title, max_width = cfg.window.max_width })
+    require("keymap-helper.ui.float").open_list(
+      state,
+      model.initial_view(state),
+      { title = cfg.window.title, max_width = cfg.window.max_width }
+    )
   )
 end
 

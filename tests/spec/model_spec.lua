@@ -95,7 +95,87 @@ describe("model.build intro", function()
     eq(nil, model.build(off, data, ident, ident, env).intro)
   end)
 
+  it("initial_view folds the intro as cfg.intro.collapsed says", function()
+    eq(false, model.initial_view(model.build(base, data, ident, ident, env)).collapsed.intro)
+    local folded = vim.tbl_extend("force", cfg, { intro = { enabled = true, collapsed = true } })
+    eq(true, model.initial_view(model.build(folded, data, ident, ident, env)).collapsed.intro)
+    eq(nil, model.initial_view(model.build(cfg, data, ident, ident)).collapsed.intro)
+  end)
+
   it("has no intro when cfg.intro is absent", function()
     eq(nil, model.build(cfg, data, ident, ident, env).intro)
+  end)
+end)
+
+describe("model collapsed state", function()
+  local ccfg = {
+    sections = {
+      { title = "A", collapsed = true },
+      { title = "B" },
+      { title = "C", collapsed = false },
+    },
+    window = { footer = "f" },
+  }
+  local state = model.build(ccfg, { scanned = { {}, {}, {} }, live = {} }, ident, ident)
+
+  it("build copies collapsed onto each section state (default false)", function()
+    eq(
+      { true, false, false },
+      vim.tbl_map(function(s)
+        return s.collapsed
+      end, state.sections)
+    )
+  end)
+
+  it("initial_view maps every section id to its collapsed flag", function()
+    eq({ collapsed = { [1] = true, [2] = false, [3] = false } }, model.initial_view(state))
+  end)
+
+  local view = { collapsed = { [1] = true, [2] = false, [3] = false } }
+
+  it("toggle flips one id", function()
+    eq({ collapsed = { [1] = false, [2] = false, [3] = false } }, model.reduce(view, { type = "toggle", id = 1 }))
+    eq({ collapsed = { [1] = true, [2] = true, [3] = false } }, model.reduce(view, { type = "toggle", id = 2 }))
+  end)
+
+  it("open and close set one id idempotently", function()
+    eq({ collapsed = { [1] = false, [2] = false, [3] = false } }, model.reduce(view, { type = "open", id = 1 }))
+    eq(view, model.reduce(view, { type = "open", id = 2 }))
+    eq({ collapsed = { [1] = true, [2] = true, [3] = false } }, model.reduce(view, { type = "close", id = 2 }))
+    eq(view, model.reduce(view, { type = "close", id = 1 }))
+  end)
+
+  it("open_all and close_all affect every id", function()
+    eq({ collapsed = { [1] = false, [2] = false, [3] = false } }, model.reduce(view, { type = "open_all" }))
+    eq({ collapsed = { [1] = true, [2] = true, [3] = true } }, model.reduce(view, { type = "close_all" }))
+  end)
+
+  it("reduce never mutates its input", function()
+    local before = vim.deepcopy(view)
+    for _, a in ipairs {
+      { type = "toggle", id = 1 },
+      { type = "open", id = 1 },
+      { type = "close", id = 2 },
+      { type = "open_all" },
+      { type = "close_all" },
+      { type = "bogus" },
+    } do
+      local new = model.reduce(view, a)
+      ok(new ~= view, "returned the same table")
+      eq(before, view)
+    end
+  end)
+
+  it("unknown id or type returns an equal copy", function()
+    for _, a in ipairs {
+      { type = "toggle", id = 99 },
+      { type = "open", id = 99 },
+      { type = "close", id = 99 },
+      { type = "nope" },
+    } do
+      local new = model.reduce(view, a)
+      ok(new ~= view)
+      eq(view, new)
+    end
   end)
 end)
