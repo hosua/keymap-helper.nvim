@@ -3,9 +3,44 @@
 --- keep the two identical.
 local M = {}
 
+--- A section is one titled block in the keymap list. Sections are filled in
+--- order: a section with `files` claims every map(...) call parsed out of
+--- those files, and the first section with `rest = true` gets every live
+--- mapping (with a description) that no earlier section claimed.
+---
+--- @class KeymapHelperSection
+--- @field title string
+--- @field subtitle string|nil shown after the title, dimmed
+--- @field files string[]|nil paths; relative ones resolve against stdpath("config")
+--- @field runtime_files string[]|nil looked up on 'runtimepath' (e.g. a plugin's mappings file)
+--- @field group_by "header"|"none"|nil "header" splits on box-comment headers in the files
+--- @field rest boolean|nil collect every unclaimed live mapping
+
 --- @class KeymapHelperConfig
 M.defaults = {
-  notify = true,
+  --- @type KeymapHelperSection[]
+  sections = {
+    { title = "Your config", subtitle = "lua/mappings.lua", files = { "lua/mappings.lua" }, group_by = "header" },
+    { title = "Everything else", subtitle = "every other mapping with a description", rest = true },
+  },
+  -- Lua pattern for a section header comment; capture 1 is the header text.
+  -- The default matches `-- │ General │` box-drawing headers.
+  header_pattern = "^%-%- │%s*(.-)%s*│$",
+  -- Function names treated as "set a mapping" when scanning files.
+  map_functions = { "map", "vim.keymap.set", "keymap.set" },
+  -- Modes whose live mappings feed `rest` sections.
+  modes = { "n", "i", "v", "x", "t" },
+  window = {
+    title = " Keymaps ",
+    max_width = 96,
+    footer = "q or <Esc> to close",
+  },
+  hint = {
+    enabled = true,
+    -- `{key}` becomes the key you mapped to :KeymapHelper, or the command itself.
+    message = "Type {key} to view a list of all keymappings!",
+    timeout_ms = 6000,
+  },
 }
 
 local resolved
@@ -24,12 +59,36 @@ local function unknown_keys(user, defaults, prefix, out)
   return out
 end
 
+--- @param cfg KeymapHelperConfig
+local function validate(cfg)
+  vim.validate("sections", cfg.sections, "table")
+  for i, s in ipairs(cfg.sections) do
+    local name = ("sections[%d]"):format(i)
+    vim.validate(name .. ".title", s.title, "string")
+    vim.validate(name .. ".files", s.files, "table", true)
+    vim.validate(name .. ".runtime_files", s.runtime_files, "table", true)
+    vim.validate(name .. ".rest", s.rest, "boolean", true)
+  end
+  vim.validate("header_pattern", cfg.header_pattern, "string")
+  vim.validate("modes", cfg.modes, "table")
+  vim.validate("hint.message", cfg.hint.message, "string")
+end
+
 --- @param opts table|nil
 --- @return KeymapHelperConfig cfg, string[] unknown
 function M.resolve(opts)
   opts = opts or {}
   local unknown = unknown_keys(opts, M.defaults, "", {})
-  resolved = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), opts)
+  -- Lists (sections, modes, ...) replace the default wholesale rather than
+  -- merging index by index, which would splice two unrelated lists together.
+  local merged = vim.tbl_deep_extend("force", vim.deepcopy(M.defaults), opts)
+  for _, key in ipairs { "sections", "modes", "map_functions" } do
+    if opts[key] ~= nil then
+      merged[key] = vim.deepcopy(opts[key])
+    end
+  end
+  validate(merged)
+  resolved = merged
   if #unknown > 0 then
     vim.notify("keymap-helper: unknown config key(s): " .. table.concat(unknown, ", "), vim.log.levels.WARN)
   end
