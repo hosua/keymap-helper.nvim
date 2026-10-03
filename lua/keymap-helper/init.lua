@@ -27,6 +27,13 @@ function M.setup(opts)
   end
 end
 
+--- Start recording which file calls vim.keymap.set (opt-in). Call it from the
+--- first lines of init.lua, before plugins cache `vim.keymap.set`.
+--- @return boolean installed true when the wrapper is active
+function M.track()
+  return require("keymap-helper.track").install()
+end
+
 --- Open the grouped keymap list.
 --- @return integer win
 function M.show()

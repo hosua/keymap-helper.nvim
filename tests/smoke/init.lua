@@ -8,6 +8,8 @@ vim.g.mapleader = " "
 local map = vim.keymap.set
 map("n", ";", ":", { desc = "CMD enter command mode" })
 map("n", "<leader>km", "<cmd>KeymapHelper<cr>", { desc = "show keymaps" })
+map({ "n", "x" }, "<leader>gb", "<cmd>echo 1<cr>", { desc = "git blame line" })
+map("i", "jk", "<ESC>")
 map("n", "<leader>zz", "<cmd>echo 'z'<cr>", { desc = "unclaimed smoke map" })
 
 require("keymap-helper").setup {

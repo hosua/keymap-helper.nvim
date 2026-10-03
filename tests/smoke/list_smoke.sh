@@ -18,6 +18,8 @@ smoke_expect 'n normal · i insert'
 smoke_expect '▾ Custom \([0-9]+\)  ·  fixture'
 smoke_expect '  General'
 smoke_expect 'n,x +<leader>gb +git blame line'
+smoke_expect 'i +jk'
+smoke_reject 'yank permalink'
 smoke_expect '▸ Default \([0-9]+\)'
 smoke_reject '<leader>zz'
 
@@ -58,5 +60,5 @@ smoke_keys ':KeymapHelper' Enter
 smoke_expect '▾ Custom'
 smoke_reject 'E[0-9]+:'
 smoke_stop
-rm -rf "$tmp"
+smoke_rmdir "$tmp"
 echo "list smoke: ok"

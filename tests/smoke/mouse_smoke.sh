@@ -28,5 +28,5 @@ smoke_keys ':echo "rel=[" . nvim_win_get_config(0).relative . "]"' Enter
 smoke_expect 'rel=\[\]'
 smoke_reject 'E[0-9]+:'
 smoke_stop
-rm -rf "$tmp"
+smoke_rmdir "$tmp"
 echo "mouse smoke: ok"
