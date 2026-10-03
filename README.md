@@ -4,23 +4,14 @@ A grouped, collapsible list of your Neovim keymaps, opened with `<leader>km`. Wi
 configuration it lists every keymap that has a description. Add sections to split the list
 by file, plugin, origin or pattern.
 
-```
-╭──────────────────────────────── Keymaps ────────────────────────────────╮
-│  ▸ How to read this list                                                │
-│  ▾ Custom (2)  ·  lua/mappings.lua                                      │
-│                                                                         │
-│  General                                                                │
-│    n     ;                      CMD enter command mode                  │
-│                                                                         │
-│  Splits                                                                 │
-│    n     <leader>-              split vertically                        │
-│                                                                         │
-│  ▸ NvChad defaults (48)                                                 │
-│  ▸ Default (61)  ·  everything else with a description                  │
-│                                                                         │
-│  <CR> toggle section · zR open all · zM close all · q close             │
-╰─────────────────────────────────────────────────────────────────────────╯
-```
+![Zero config: one expanded Default section opened with leader km](docs/media/default.png)
+
+With a config like the NvChad example below, the list is split into your own groups and
+NvChad's folded defaults:
+
+![Custom section grouped by header comments, NvChad defaults folded, Default at the end](docs/media/custom.png)
+
+![Expanding NvChad defaults, then zM and zR](docs/media/nvchad-submenu.gif)
 
 On startup a small centered hint says which key opens the list. It closes on the first
 keypress or after 6 seconds.
@@ -109,7 +100,7 @@ map("n", "<leader>gb", "<cmd>Gitsigns blame<CR>", { desc = "blame current line" 
 ```
 
 This shows as a "Custom" section with the groups "General", "Splits" and
-"Git / goto  (<leader>g)". A map that NvChad sets and this file overrides shows once, under
+"Git / goto  (<leader>g)" (see the screenshot above). A map that NvChad sets and this file overrides shows once, under
 Custom. A NvChad map deleted with `vim.keymap.del` is not shown at all.
 
 ### Only want NvChad's maps split out?
@@ -128,6 +119,15 @@ opts = {
 install. If your maps live elsewhere (for example `lua/custom/mappings.lua` or several
 files), list those paths in a `files` section instead. `:checkhealth keymap-helper` says
 whether each file was found.
+
+![One section: NvChad defaults plus the implicit Default](docs/media/one-section.png)
+
+## The legend
+
+The list opens with a "How to read this list" section that resolves your real `<leader>`
+and explains mode letters and key notation. Rows are coloured by role: mode, key, description.
+
+![The expanded legend](docs/media/intro.png)
 
 ## Commands
 
