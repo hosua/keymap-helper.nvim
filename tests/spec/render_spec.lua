@@ -1,8 +1,17 @@
 local render = require "keymap-helper.render"
 
+local ROW_HL = { KeymapHelperMode = true, KeymapHelperKey = true, KeymapHelperDesc = true }
+
+-- Whole-line spans only (headers, groups, footer); row spans have their own test.
 local function no_chevron(spans)
   return vim.tbl_filter(function(sp)
-    return sp.hl ~= "KeymapHelperChevron"
+    return sp.hl ~= "KeymapHelperChevron" and not ROW_HL[sp.hl]
+  end, spans)
+end
+
+local function row_spans(spans, row)
+  return vim.tbl_filter(function(sp)
+    return sp.row == row and ROW_HL[sp.hl]
   end, spans)
 end
 
@@ -50,6 +59,37 @@ describe("render", function()
       { row = 8, col_start = 0, col_end = -1, hl = "KeymapHelperSection" },
       { row = 11, col_start = 0, col_end = -1, hl = "KeymapHelperFooter" },
     }, no_chevron(r.spans))
+  end)
+
+  it("highlights each row's modes, key and description separately", function()
+    -- "    n,x   <leader>gb             blame"
+    eq({
+      { row = 6, col_start = 4, col_end = 7, hl = "KeymapHelperMode" },
+      { row = 6, col_start = 10, col_end = 20, hl = "KeymapHelperKey" },
+      { row = 6, col_start = 33, col_end = -1, hl = "KeymapHelperDesc" },
+    }, row_spans(r.spans, 6))
+  end)
+
+  it("pads by display width and skips the span of an empty description", function()
+    local wide = render.render {
+      sections = {
+        {
+          id = 1,
+          title = "S",
+          count = 2,
+          groups = {
+            {
+              rows = {
+                { modes = "n", lhs = "é│", desc = "wide" },
+                { modes = "i", lhs = "jk", desc = "" },
+              },
+            },
+          },
+        },
+      },
+    }
+    eq(vim.fn.strdisplaywidth "    n     ;                      wide", vim.fn.strdisplaywidth(wide.lines[2]))
+    eq(2, #row_spans(wide.spans, 2))
   end)
 
   it("records a hit region per section header", function()

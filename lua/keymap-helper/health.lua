@@ -12,6 +12,12 @@ function M.check()
   -- Which copy is loaded matters when a dev checkout and a lazy clone coexist.
   local src = debug.getinfo(require("keymap-helper").setup, "S").source:gsub("^@", "")
   h.info("loaded from " .. vim.fn.fnamemodify(src, ":~"))
+  local key = require("keymap-helper.collect").command_key()
+  if key then
+    h.ok("opens with " .. key)
+  else
+    h.info("no key is mapped to :KeymapHelper", { "set `keymap` in setup(), or map one yourself" })
+  end
 
   h.start "keymap-helper: sections"
   local cfg = require("keymap-helper.config").get()

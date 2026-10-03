@@ -6,6 +6,10 @@ local M = {}
 M.LINKS = {
   KeymapHelperSection = "Type",
   KeymapHelperGroup = "Title",
+  -- Rows: the key stands out, its description stays muted.
+  KeymapHelperMode = "Constant",
+  KeymapHelperKey = "Special",
+  KeymapHelperDesc = "Comment",
   KeymapHelperFooter = "Comment",
   KeymapHelperIntro = "Comment",
   KeymapHelperHintBorder = "DiagnosticInfo",

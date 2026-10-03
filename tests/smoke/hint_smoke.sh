@@ -11,7 +11,7 @@ fail=0
 check_centered() {
   local w=$1 h=$2
   smoke_start "$w" "$h" "${env_xdg[@]}" nvim --clean -u tests/smoke/init.lua
-  smoke_expect 'Type <Space>km' || { fail=1; return; }
+  smoke_expect 'Type <leader>km' || { fail=1; return; }
   smoke_reject 'E[0-9]+:' || fail=1
   local res
   res=$(smoke_screen | W=$w H=$h python3 -c '
@@ -19,7 +19,7 @@ import os, sys
 w, h = int(os.environ["W"]), int(os.environ["H"])
 lines = sys.stdin.read().split("\n")
 for i, l in enumerate(lines):
-    if "Type <Space>km" in l:
+    if "Type <leader>km" in l:
         # empty-buffer filler: the "~" in column 0 is not part of the box
         if l.startswith("~"):
             l = " " + l[1:]

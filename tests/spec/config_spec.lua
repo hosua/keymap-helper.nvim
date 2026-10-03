@@ -76,19 +76,19 @@ describe("config", function()
     eq(true, cfg.sections[1].collapsed)
   end)
 
-  it("defaults collapse the second section and describe the new keys in the footer", function()
-    eq(true, config.defaults.sections[2].collapsed)
-    eq("<CR> toggle section · zR open all · zM close all · q close", config.defaults.window.footer)
+  it("has no footer option: the footer is generated from the bound keys", function()
+    eq(nil, config.defaults.window.footer)
+    local _, unknown = quiet(function()
+      return config.resolve { window = { footer = "x" } }
+    end)
+    eq({ "window.footer" }, unknown)
   end)
 end)
 
 describe("config auto-detect", function()
   it("has the documented default sections", function()
     eq({
-      { title = "Your config", config = true, group_by = "header" },
-      { title = "Plugins", plugin = true, group_by = "plugin", collapsed = true },
-      { title = "Neovim defaults", builtin = true, collapsed = true },
-      { title = "Other", subtitle = "origin unknown", rest = true, collapsed = true },
+      { title = "Default", subtitle = "everything else with a description", rest = true, collapsed = false },
     }, config.defaults.sections)
   end)
 
@@ -161,10 +161,35 @@ describe("config auto-detect", function()
       sections = {
         { title = "Custom", subtitle = "lua/mappings.lua", files = { "lua/mappings.lua" }, group_by = "header" },
         { title = "NvChad defaults", runtime_files = { "lua/nvchad/mappings.lua" }, collapsed = true },
-        { title = "Plugins", plugin = true, group_by = "plugin", collapsed = true },
-        { title = "Default", subtitle = "everything else with a description", rest = true, collapsed = true },
       },
     }
     eq({}, unknown)
+  end)
+end)
+
+describe("config keymap", function()
+  it("defaults to <leader>km", function()
+    eq("<leader>km", config.defaults.keymap)
+    eq("<leader>km", config.resolve().keymap)
+  end)
+
+  it("accepts false", function()
+    local cfg, unknown = config.resolve { keymap = false }
+    eq(false, cfg.keymap)
+    eq({}, unknown)
+  end)
+
+  it("accepts a key string with no unknown keys", function()
+    local cfg, unknown = config.resolve { keymap = "<leader>?" }
+    eq("<leader>?", cfg.keymap)
+    eq({}, unknown)
+  end)
+
+  it("rejects a non-string and an empty string, naming the option", function()
+    for _, bad in ipairs { 5, "" } do
+      local okk, err = pcall(config.resolve, { keymap = bad })
+      eq(false, okk)
+      ok(tostring(err):find("keymap", 1, true), tostring(err))
+    end
   end)
 end)

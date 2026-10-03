@@ -88,13 +88,14 @@ function M.live(modes)
   return out
 end
 
---- The key the user bound to :KeymapHelper (show), for the startup hint.
+--- The key the user bound to :KeymapHelper (show), for the startup hint,
+--- written the way the list shows it ("<leader>km", not "<Space>km").
 --- @return string|nil
 function M.command_key()
   for _, m in ipairs(vim.api.nvim_get_keymap "n") do
     local rhs = m.rhs or ""
     if rhs:match "KeymapHelper%s*<[Cc][Rr]>" or rhs:match "KeymapHelper show%s*<[Cc][Rr]>" then
-      return vim.fn.keytrans(m.lhsraw or vim.keycode(m.lhs))
+      return M.display(m.lhsraw or m.lhs)
     end
   end
 end

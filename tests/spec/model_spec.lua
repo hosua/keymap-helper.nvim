@@ -116,7 +116,7 @@ describe("model.build", function()
         return s.id
       end, state.sections)
     )
-    eq("q to close", state.footer)
+    eq(require("keymap-helper.ui.keys").footer(), state.footer)
   end)
 
   it("file sections show live maps (even without desc) grouped by header", function()
@@ -191,7 +191,7 @@ describe("model.build", function()
     eq({ "b" }, lhs_of(sec(s, 1)))
   end)
 
-  it("appends an implicit collapsed Other only when it has rows", function()
+  it("appends an implicit collapsed Default only when it has rows", function()
     local c = { sections = { { title = "Mine", config = true } }, window = {} }
     local live = {
       { mode = "n", lhs = "a", desc = "mine", origin = C },
@@ -200,12 +200,22 @@ describe("model.build", function()
     local s = model.build(c, { scanned = { {} }, live = live }, ident, ident)
     eq(2, #s.sections)
     eq(2, s.sections[2].id)
-    eq("Other", s.sections[2].title)
+    eq("Default", s.sections[2].title)
+    eq("everything else with a description", s.sections[2].subtitle)
     eq(true, s.sections[2].collapsed)
     eq({ "b" }, lhs_of(s.sections[2]))
 
     local only = model.build(c, { scanned = { {} }, live = { live[1] } }, ident, ident)
     eq(1, #only.sections)
+  end)
+
+  it("the implicit Default section is open when the user has no sections", function()
+    local live = { { mode = "n", lhs = "b", desc = "other", origin = { kind = "unknown", via = "none" } } }
+    local s = model.build({ sections = {}, window = {} }, { scanned = {}, live = live }, ident, ident)
+    eq(1, #s.sections)
+    eq("Default", s.sections[1].title)
+    eq(false, s.sections[1].collapsed)
+    eq({ "b" }, lhs_of(s.sections[1]))
   end)
 
   it("a file section with an entry that is not live has count 0", function()

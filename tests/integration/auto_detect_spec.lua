@@ -23,8 +23,16 @@ local cfg_dir = vim.fn.stdpath "config"
 local lazy = data_dir .. "/lazy"
 vim.fn.mkdir(lazy, "p")
 
+-- The origin-based layout the default config used to ship; these tests rely on it.
+local BY_ORIGIN = {
+  { title = "Your config", config = true, group_by = "header" },
+  { title = "Plugins", plugin = true, group_by = "plugin", collapsed = true },
+  { title = "Neovim defaults", builtin = true, collapsed = true },
+  { title = "Other", subtitle = "origin unknown", rest = true, collapsed = true },
+}
+
 local function build(opts)
-  local cfg = config.resolve(opts or { modes = { "n", "i", "x" } })
+  local cfg = config.resolve(opts or { modes = { "n", "i", "x" }, sections = BY_ORIGIN })
   return model.build(cfg, model.gather(cfg), collect.normalize, collect.display)
 end
 
@@ -175,5 +183,35 @@ describe("auto-detected sections (integration)", function()
     local seen = all_lhs(state)
     eq(nil, seen["<leader>cd"])
     eq(1, seen["<leader>co"])
+  end)
+
+  it("default config: one open Default section with documented maps, no undocumented ones", function()
+    local state = build { modes = { "n", "i", "x" } }
+    eq(1, #state.sections)
+    local sec = state.sections[1]
+    eq("Default", sec.title)
+    ok(not sec.collapsed, "Default should not be collapsed")
+    local seen = all_lhs(state)
+    eq(1, seen["<leader>if"])
+    eq(nil, seen["jj"])
+  end)
+
+  it("one-line NvChad config: unmatched maps fall into a collapsed implicit Default", function()
+    local state = build {
+      modes = { "n", "i", "x" },
+      sections = { { title = "NvChad defaults", runtime_files = { "lua/fakechad/mappings.lua" }, collapsed = true } },
+    }
+    eq("NvChad defaults", state.sections[1].title)
+    local def = state.sections[2]
+    ok(def, "no implicit Default section: " .. vim.inspect(state.sections))
+    eq("Default", def.title)
+    eq(true, def.collapsed)
+    local found = false
+    for _, g in ipairs(def.groups) do
+      for _, r in ipairs(g.rows) do
+        found = found or r.lhs == "<leader>if"
+      end
+    end
+    ok(found, "<leader>if missing from Default")
   end)
 end)

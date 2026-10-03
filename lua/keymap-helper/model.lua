@@ -168,7 +168,7 @@ end
 local UNKNOWN_ORIGIN = { kind = "unknown", via = "none" }
 
 --- Deal every live map to the first section that wants it.
---- @return table<integer, KeymapHelperItem[]> items per section index (the implicit Other is #sections + 1)
+--- @return table<integer, KeymapHelperItem[]> items per section index (the implicit Default is #sections + 1)
 local function assign(cfg, data, normalize, display)
   local sections = cfg.sections
   local filesets = {}
@@ -252,7 +252,13 @@ function M.build(cfg, data, normalize, display, env)
   end
   local other = #cfg.sections + 1
   if items[other] then
-    local implicit = { title = "Other", rest = true, collapsed = true }
+    -- Same section as the default config; folded when it follows user sections.
+    local implicit = {
+      title = "Default",
+      subtitle = "everything else with a description",
+      rest = true,
+      collapsed = #cfg.sections > 0,
+    }
     table.insert(sections, section_state(other, implicit, items[other], wk_groups))
   end
 
@@ -263,7 +269,7 @@ function M.build(cfg, data, normalize, display, env)
 
   return {
     sections = sections,
-    footer = cfg.window.footer,
+    footer = require("keymap-helper.ui.keys").footer(),
     intro = intro,
     intro_collapsed = intro ~= nil and cfg.intro.collapsed == true,
   }
