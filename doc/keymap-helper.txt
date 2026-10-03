@@ -3,9 +3,10 @@
 ==============================================================================
 CONTENTS                                              *keymap-helper*
 
-A list of every keymap, sorted by where it came from: your config, each
-plugin, or Neovim itself. The README has the full option reference:
-https://github.com/hosua/keymap-helper.nvim
+A grouped list of your keymaps, opened with <leader>km. With no
+configuration it lists every keymap that has a description; add sections
+to split it by file, plugin or origin. The README has the full option
+reference: https://github.com/hosua/keymap-helper.nvim
 
 ==============================================================================
 COMMANDS                                              *keymap-helper-commands*
@@ -19,9 +20,8 @@ COMMANDS                                              *keymap-helper-commands*
 :KeymapHelper health
         Same as `:checkhealth keymap-helper`.
 
-Suggested mapping: >lua
-    vim.keymap.set("n", "<leader>km", "<cmd>KeymapHelper<cr>", { desc = "keymap list" })
-<
+Default key: <leader>km (normal mode). Change it with the `keymap` option,
+or set `keymap = false`. A key you already mapped is never overwritten.
 
 Keys inside the list:
     <CR> za <Tab>   toggle the section under the cursor
@@ -38,6 +38,7 @@ require("keymap-helper").setup({opts})                *keymap-helper.setup()*
         called. Unknown keys are reported. Main options:
 
         sections            list of sections, see |keymap-helper-sections|
+        keymap              key that opens the list ("<leader>km"), or false
         show_undocumented   show maps without desc and <Plug> maps (false)
         detect              { scan_config, max_files, lazy_keys, which_key }
         hint                { enabled, message, timeout_ms, position }
@@ -63,6 +64,9 @@ with `rest = true` are tried last. Matchers:
 
 Other keys: title, subtitle, rest, collapsed, hidden, group_by ("header",
 "plugin", "leader_prefix", "none").
+
+With no `rest` section, unmatched maps go to a folded "Default" section
+at the end.
 
 ==============================================================================
 TRACK                                                 *keymap-helper-track*

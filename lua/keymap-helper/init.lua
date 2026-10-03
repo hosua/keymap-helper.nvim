@@ -9,6 +9,7 @@ local config = require "keymap-helper.config"
 --- @param opts table|nil user overrides, merged over config.defaults
 function M.setup(opts)
   local cfg = config.resolve(opts)
+  require("keymap-helper.keymap").apply(cfg.keymap)
   if not cfg.hint.enabled then
     return
   end

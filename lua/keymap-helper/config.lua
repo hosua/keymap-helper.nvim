@@ -6,7 +6,8 @@ local M = {}
 --- A section is one titled block in the keymap list. Every visible live map
 --- goes to the first section whose matchers all pass (sections with
 --- `rest = true` are tried last). A section with no matcher and no `rest`
---- matches nothing.
+--- matches nothing. Maps no section matched go to an implicit "Default" section
+--- when no section has `rest = true`.
 ---
 --- @class KeymapHelperSection
 --- @field title string
@@ -29,11 +30,11 @@ local M = {}
 M.defaults = {
   --- @type KeymapHelperSection[]
   sections = {
-    { title = "Your config", config = true, group_by = "header" },
-    { title = "Plugins", plugin = true, group_by = "plugin", collapsed = true },
-    { title = "Neovim defaults", builtin = true, collapsed = true },
-    { title = "Other", subtitle = "origin unknown", rest = true, collapsed = true },
+    { title = "Default", subtitle = "everything else with a description", rest = true, collapsed = false },
   },
+  -- Normal-mode key that opens the list, or false for none. A key you already
+  -- mapped is never overwritten.
+  keymap = "<leader>km",
   -- Show maps with no desc and <Plug> maps (file sections always show their own).
   show_undocumented = false,
   detect = {
@@ -134,6 +135,9 @@ local function validate(cfg)
       return v == nil or GROUP_BY[v] == true
     end, "one of: header, plugin, leader_prefix, none")
   end
+  vim.validate("keymap", cfg.keymap, function(v)
+    return v == false or (type(v) == "string" and v ~= "")
+  end, "a key such as <leader>km, or false")
   vim.validate("show_undocumented", cfg.show_undocumented, "boolean")
   vim.validate("detect.max_files", cfg.detect.max_files, function(v)
     return type(v) == "number" and v > 0 and v == math.floor(v)

@@ -1,23 +1,22 @@
 # keymap-helper.nvim
 
-A grouped, collapsible list of every keymap in your Neovim, sorted by where each one came
-from: your config, each plugin, or Neovim itself. It works with no setup, and you can define
-your own sections when the automatic split is not what you want.
+A grouped, collapsible list of your Neovim keymaps, opened with `<leader>km`. With no
+configuration it lists every keymap that has a description. Add sections to split the list
+by file, plugin, origin or pattern.
 
 ```
 ╭──────────────────────────────── Keymaps ────────────────────────────────╮
 │  ▸ How to read this list                                                │
-│  ▾ Your config (2)                                                      │
+│  ▾ Custom (2)  ·  lua/mappings.lua                                      │
 │                                                                         │
-│  Files                                                                  │
-│    n     <leader>w              save file                               │
+│  General                                                                │
+│    n     ;                      CMD enter command mode                  │
 │                                                                         │
-│  Windows                                                                │
-│    n     <leader>q              quit                                    │
+│  Splits                                                                 │
+│    n     <leader>-              split vertically                        │
 │                                                                         │
-│  ▸ Plugins (0)                                                          │
-│  ▸ Neovim defaults (61)                                                 │
-│  ▸ Other (1)  ·  origin unknown                                         │
+│  ▸ NvChad defaults (48)                                                 │
+│  ▸ Default (61)  ·  everything else with a description                  │
 │                                                                         │
 │  <CR> toggle section · zR open all · zM close all · q close             │
 ╰─────────────────────────────────────────────────────────────────────────╯
@@ -47,12 +46,88 @@ command if you turn the hint off:
 }
 ```
 
-Then bind a key. A `<cmd>` string, rather than a Lua function, lets the startup hint show
-your actual key:
+That is all: `<leader>km` opens the list. Set `mapleader` before the plugin loads. To use
+another key set `keymap = "<leader>?"`, or `keymap = false` to map your own (use a
+`"<cmd>KeymapHelper<cr>"` string rather than a Lua function, so the startup hint can show
+your key). A key you already mapped is never overwritten.
+
+## Example: an NvChad config
+
+The author's `lua/plugins/keymap-helper.lua`: custom maps first, grouped by the box comments
+in `lua/mappings.lua`, then NvChad's own maps, folded.
 
 ```lua
-vim.keymap.set("n", "<leader>km", "<cmd>KeymapHelper<cr>", { desc = "keymap list" })
+return {
+  {
+    "hosua/keymap-helper.nvim",
+    cmd = { "KeymapHelper" },
+    event = "VimEnter",
+    opts = {
+      sections = {
+        { title = "Custom", subtitle = "lua/mappings.lua", files = { "lua/mappings.lua" }, group_by = "header" },
+        { title = "NvChad defaults", runtime_files = { "lua/nvchad/mappings.lua" }, collapsed = true },
+      },
+    },
+  },
+}
 ```
+
+Everything those two sections do not claim lands in a folded "Default" section at the end,
+so it does not need to be listed.
+
+### How headers become groups
+
+`group_by = "header"` reads the comments in the section's files. Every line that matches
+`header_pattern` (default: `-- │ Name │`) starts a group, and the maps below it belong to
+that group. The box's top and bottom lines are decoration. Part of that `lua/mappings.lua`:
+
+```lua
+require "nvchad.mappings"
+
+local map = vim.keymap.set
+
+-- ┌──────────────────────────────────────────┐
+-- │ General                                  │
+-- └──────────────────────────────────────────┘
+
+map("n", ";", ":", { desc = "CMD enter command mode" })
+map("n", "<leader>h", "<cmd>Telescope help_tags<CR>", { desc = "telescope help page" })
+
+-- ┌──────────────────────────────────────────┐
+-- │ Splits                                   │
+-- └──────────────────────────────────────────┘
+
+map("n", "<leader>-", "<cmd>vsp<CR>", { desc = "split vertically" })
+map("n", "<leader>=", "<cmd>sp<CR>", { desc = "split horizontally" })
+
+-- ┌──────────────────────────────────────────┐
+-- │ Git / goto  (<leader>g)                  │
+-- └──────────────────────────────────────────┘
+
+map("n", "<leader>gg", "<cmd>LazyGit<CR>", { desc = "open lazygit TUI" })
+map("n", "<leader>gb", "<cmd>Gitsigns blame<CR>", { desc = "blame current line" })
+```
+
+This shows as a "Custom" section with the groups "General", "Splits" and
+"Git / goto  (<leader>g)". A map that NvChad sets and this file overrides shows once, under
+Custom. A NvChad map deleted with `vim.keymap.del` is not shown at all.
+
+### Only want NvChad's maps split out?
+
+One section is enough. Everything else stays in "Default":
+
+```lua
+opts = {
+  sections = {
+    { title = "NvChad defaults", runtime_files = { "lua/nvchad/mappings.lua" }, collapsed = true },
+  },
+}
+```
+
+`runtime_files` is looked up on `'runtimepath'`, so this path works for a stock NvChad
+install. If your maps live elsewhere (for example `lua/custom/mappings.lua` or several
+files), list those paths in a `files` section instead. `:checkhealth keymap-helper` says
+whether each file was found.
 
 ## Commands
 
@@ -91,8 +166,8 @@ is not listed, even when it is still in some plugin's mappings file. Maps with n
 `<Plug>` maps are hidden (set `show_undocumented = true`), except maps that a `files` section
 claims: those show even without a description.
 
-String-rhs maps set by plugins have no recorded origin, so they land in "Other" unless you use
-`track()` or give that plugin a `runtime_files` section.
+String-rhs maps set by plugins have no recorded origin, so they land in the "Default" (rest)
+section unless you use `track()` or give that plugin a `runtime_files` section.
 
 ## Configuration
 
@@ -102,11 +177,11 @@ Every option, with its default:
 ```lua
 require("keymap-helper").setup {
   sections = {
-    { title = "Your config", config = true, group_by = "header" },
-    { title = "Plugins", plugin = true, group_by = "plugin", collapsed = true },
-    { title = "Neovim defaults", builtin = true, collapsed = true },
-    { title = "Other", subtitle = "origin unknown", rest = true, collapsed = true },
+    { title = "Default", subtitle = "everything else with a description", rest = true, collapsed = false },
   },
+  -- Normal-mode key that opens the list, or false for none. A key you already
+  -- mapped is never overwritten.
+  keymap = "<leader>km",
   -- Show maps with no desc and <Plug> maps (file sections always show their own).
   show_undocumented = false,
   detect = {
@@ -165,25 +240,25 @@ reported with a warning.
 | `hidden` | boolean | Claim the maps but do not show the section (to suppress noise) |
 
 All matcher keys in one section must pass. If no section has `rest = true`, unmatched maps
-go to an extra "Other" section, which only appears when it has rows.
+go to a folded "Default" section added at the end, which only appears when it has rows. To
+drop them instead, add `{ title = "rest", rest = true, hidden = true }`.
 
 ### Recipes
 
-NvChad: your `lua/mappings.lua` grouped by its box comments, then NvChad's own maps (minus the
-ones you deleted), then the rest:
+Split by origin (your config, each plugin, Neovim itself):
 
 ```lua
 opts = {
   sections = {
-    { title = "Custom", subtitle = "lua/mappings.lua", files = { "lua/mappings.lua" }, group_by = "header" },
-    { title = "NvChad defaults", runtime_files = { "lua/nvchad/mappings.lua" }, collapsed = true },
+    { title = "Your config", config = true, group_by = "header" },
     { title = "Plugins", plugin = true, group_by = "plugin", collapsed = true },
-    { title = "Default", subtitle = "everything else with a description", rest = true, collapsed = true },
+    { title = "Neovim defaults", builtin = true, collapsed = true },
+    { title = "Other", subtitle = "origin unknown", rest = true, collapsed = true },
   },
 }
 ```
 
-LazyVim: add this between "Your config" and "Plugins" of the defaults:
+LazyVim: add this to your sections:
 
 ```lua
 { title = "LazyVim", runtime_files = { "lua/lazyvim/config/keymaps.lua" }, group_by = "leader_prefix", collapsed = true },
@@ -239,8 +314,11 @@ None. The plugin reads your config files and Neovim's live keymaps, and writes n
 `files` were found, how many maps each detection layer explained, and the first maps with no
 known origin.
 
-- **A plugin's maps are under "Other"**: they are string-rhs maps with no recorded origin. Use
-  `track()` or add `{ title = "...", runtime_files = { "lua/<plugin>/mappings.lua" } }`.
+- **A plugin's maps are under "Default"**: they are string-rhs maps with no recorded origin.
+  Use `track()` or add `{ title = "...", runtime_files = { "lua/<plugin>/mappings.lua" } }`.
+- **`<leader>km` does nothing**: `:checkhealth keymap-helper` shows the key in use. The
+  plugin does not overwrite a key you mapped yourself, and with lazy.nvim the key exists only
+  once the plugin has loaded (`event = "VimEnter"`).
 - **My maps show no groups**: `group_by = "header"` needs comments matching `header_pattern`
   (default `-- │ Name │`). Without them, use `group_by = "leader_prefix"`.
 - **Maps set in an `LspAttach` autocmd are missing**: they are buffer-local, and the list only
