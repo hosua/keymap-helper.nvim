@@ -20,6 +20,30 @@
       "files": [
         ".github/workflows/readme-drift.yml"
       ]
+    },
+    "cicd": {
+      "status": "disabled",
+      "decided": "2026-10-03",
+      "notes": "declined via gh-project-setup (Never); scaffold .github/workflows/ci.yml is hand-maintained",
+      "files": []
+    },
+    "cicd-maintenance": {
+      "status": "disabled",
+      "decided": "2026-10-03",
+      "notes": "declined via gh-project-setup first run (Never)",
+      "files": []
+    },
+    "releases": {
+      "status": "disabled",
+      "decided": "2026-10-03",
+      "notes": "declined via gh-project-setup first run (Never)",
+      "files": []
+    },
+    "changelog": {
+      "status": "disabled",
+      "decided": "2026-10-03",
+      "notes": "declined via gh-project-setup first run (Never)",
+      "files": []
     }
   }
 }
