@@ -22,5 +22,5 @@ smoke_expect '▾ Your config \(2\)'
 smoke_expect '▸ Neovim defaults \([0-9]+\)'
 smoke_reject 'E[0-9]+:'
 smoke_stop
-rm -rf "$tmp"
+smoke_rmdir "$tmp"
 echo "auto smoke: ok"

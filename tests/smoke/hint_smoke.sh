@@ -5,7 +5,7 @@ cd "$(dirname "$0")/../.."
 source tests/smoke/lib.sh
 tmp=$(mktemp -d)
 env_xdg=(env XDG_CONFIG_HOME="$tmp/c" XDG_DATA_HOME="$tmp/d" XDG_STATE_HOME="$tmp/s" XDG_CACHE_HOME="$tmp/x")
-trap 'smoke_stop; rm -rf "$tmp"' EXIT
+trap 'smoke_stop; smoke_rmdir "$tmp"' EXIT
 
 fail=0
 check_centered() {

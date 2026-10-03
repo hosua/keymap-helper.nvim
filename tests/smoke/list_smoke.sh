@@ -60,5 +60,5 @@ smoke_keys ':KeymapHelper' Enter
 smoke_expect '▾ Custom'
 smoke_reject 'E[0-9]+:'
 smoke_stop
-rm -rf "$tmp"
+smoke_rmdir "$tmp"
 echo "list smoke: ok"
