@@ -40,4 +40,27 @@ describe("config", function()
     eq(false, okk)
     ok(tostring(err):find "sections%[1%]%.title", err)
   end)
+
+  it("defaults hint.position to center", function()
+    eq("center", config.defaults.hint.position)
+    local cfg = config.resolve()
+    eq("center", cfg.hint.position)
+  end)
+
+  it("accepts hint.position = bottom_right", function()
+    local cfg = quiet(function()
+      return config.resolve { hint = { position = "bottom_right" } }
+    end)
+    eq("bottom_right", cfg.hint.position)
+  end)
+
+  it("rejects a bad hint.position, naming the option", function()
+    local okk, err = pcall(function()
+      return quiet(function()
+        return config.resolve { hint = { position = "middle" } }
+      end)
+    end)
+    eq(false, okk)
+    ok(tostring(err):find("hint.position", 1, true), err)
+  end)
 end)

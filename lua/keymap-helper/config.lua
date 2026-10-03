@@ -40,6 +40,8 @@ M.defaults = {
     -- `{key}` becomes the key you mapped to :KeymapHelper, or the command itself.
     message = "Type {key} to view a list of all keymappings!",
     timeout_ms = 6000,
+    -- "center" or "bottom_right".
+    position = "center",
   },
 }
 
@@ -72,6 +74,9 @@ local function validate(cfg)
   vim.validate("header_pattern", cfg.header_pattern, "string")
   vim.validate("modes", cfg.modes, "table")
   vim.validate("hint.message", cfg.hint.message, "string")
+  vim.validate("hint.position", cfg.hint.position, function(v)
+    return v == "center" or v == "bottom_right"
+  end, "one of: center, bottom_right")
 end
 
 --- @param opts table|nil
