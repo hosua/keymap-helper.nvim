@@ -23,11 +23,21 @@ local collect = require "keymap-helper.collect"
 --- @field subtitle string|nil
 --- @field groups KeymapHelperGroup[]
 --- @field count integer
+--- @field collapsed boolean initial fold state from the config
 
 --- @class KeymapHelperState
 --- @field sections KeymapHelperSectionState[]
 --- @field footer string
 --- @field intro KeymapHelperIntro|nil
+--- @field intro_collapsed boolean initial fold state of the intro
+
+--- Mutable-by-replacement UI state: which sections are folded.
+--- @class KeymapHelperView
+--- @field collapsed table<integer|string, boolean> section id (or "intro") -> folded
+
+--- @alias KeymapHelperAction
+--- | { type: "toggle"|"open"|"close", id: integer }
+--- | { type: "open_all"|"close_all" }
 
 --- Resolve a section's file list to absolute paths that exist.
 --- @param section KeymapHelperSection
@@ -150,7 +160,14 @@ function M.build(cfg, data, normalize, display, env)
     for _, g in ipairs(groups) do
       count = count + #g.rows
     end
-    table.insert(sections, { id = i, title = s.title, subtitle = s.subtitle, groups = groups, count = count })
+    table.insert(sections, {
+      id = i,
+      title = s.title,
+      subtitle = s.subtitle,
+      groups = groups,
+      count = count,
+      collapsed = s.collapsed == true,
+    })
   end
 
   local intro
@@ -158,7 +175,49 @@ function M.build(cfg, data, normalize, display, env)
     intro = require("keymap-helper.intro").build(env.mapleader, env.maplocalleader)
   end
 
-  return { sections = sections, footer = cfg.window.footer, intro = intro }
+  return {
+    sections = sections,
+    footer = cfg.window.footer,
+    intro = intro,
+    intro_collapsed = intro ~= nil and cfg.intro.collapsed == true,
+  }
+end
+
+--- Starting view: every section folded as the config asks.
+--- @param state KeymapHelperState
+--- @return KeymapHelperView
+function M.initial_view(state)
+  local collapsed = {}
+  for _, s in ipairs(state.sections) do
+    collapsed[s.id] = s.collapsed == true
+  end
+  if state.intro then
+    collapsed.intro = state.intro_collapsed == true
+  end
+  return { collapsed = collapsed }
+end
+
+--- Pure reducer: returns a new view, never touches the input.
+--- @param view KeymapHelperView
+--- @param action KeymapHelperAction
+--- @return KeymapHelperView
+function M.reduce(view, action)
+  local collapsed = vim.deepcopy(view.collapsed)
+  local t, id = action.type, action.id
+  if t == "open_all" or t == "close_all" then
+    for k in pairs(collapsed) do
+      collapsed[k] = t == "close_all"
+    end
+  elseif collapsed[id] ~= nil then
+    if t == "toggle" then
+      collapsed[id] = not collapsed[id]
+    elseif t == "open" then
+      collapsed[id] = false
+    elseif t == "close" then
+      collapsed[id] = true
+    end
+  end
+  return { collapsed = collapsed }
 end
 
 return M

@@ -63,4 +63,21 @@ describe("config", function()
     eq(false, okk)
     ok(tostring(err):find("hint.position", 1, true), err)
   end)
+
+  it("rejects a non-boolean section collapsed, naming the option", function()
+    local okk, err =
+      pcall(config.resolve, { sections = { { title = "x", rest = true }, { title = "y", collapsed = "yes" } } })
+    eq(false, okk)
+    ok(tostring(err):find "sections%[2%]%.collapsed", err)
+  end)
+
+  it("accepts boolean collapsed", function()
+    local cfg = config.resolve { sections = { { title = "x", rest = true, collapsed = true } } }
+    eq(true, cfg.sections[1].collapsed)
+  end)
+
+  it("defaults collapse the second section and describe the new keys in the footer", function()
+    eq(true, config.defaults.sections[2].collapsed)
+    eq("<CR> toggle section · zR open all · zM close all · q close", config.defaults.window.footer)
+  end)
 end)

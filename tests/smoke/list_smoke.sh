@@ -12,28 +12,50 @@ smoke_reject 'E[0-9]+:'
 
 smoke_keys ' ' 'k' 'm'
 smoke_expect 'Keymaps'
-smoke_expect 'How to read this list'
+smoke_expect '▾ How to read this list'
 smoke_expect '<leader> +<Space>'
 smoke_expect 'n normal · i insert'
-smoke_expect 'Custom  ·  fixture'
+smoke_expect '▾ Custom \([0-9]+\)  ·  fixture'
 smoke_expect '  General'
 smoke_expect 'n,x +<leader>gb +git blame line'
-# ";" is claimed by the fixture section, so it must not repeat under Default.
-# The intro makes the list taller than the window: count it before scrolling
-# (Custom's copy) and after (where a Default copy would sit); total must be 1.
-[ "$(smoke_screen | grep -c 'CMD enter command mode')" = 1 ] && echo "  ok    ; listed in Custom" || { echo "  FAIL  ; not listed once in Custom"; exit 1; }
-smoke_keys C-d
-smoke_expect '  Default'
+smoke_expect '▸ Default \([0-9]+\)'
+smoke_reject '<leader>zz'
+
+# The cursor starts on the intro header: <CR> folds it.
+smoke_keys Enter
+smoke_expect '▸ How to read this list'
+smoke_reject 'n normal · i insert'
+
+# Expand Default: move to its header, <CR>.
+smoke_keys ':call search("Default")' Enter
+smoke_keys Enter
+smoke_expect '▾ Default'
+# Default is longer than the window: jump to the row before checking it.
+smoke_keys ':call search("unclaimed smoke")' Enter
 smoke_expect '<leader>zz +unclaimed smoke map'
-[ "$(smoke_screen | grep -c 'CMD enter command mode')" = 0 ] && echo "  ok    ; not repeated under Default" || { echo "  FAIL  ; listed twice"; exit 1; }
+smoke_keys gg
+
+# ";" is claimed by the fixture section, so the whole buffer has it once.
+smoke_keys ':echo "dups=" . len(filter(getline(1, "$"), "v:val =~# \"CMD enter command mode\""))' Enter
+smoke_expect 'dups=1'
+
+# zM closes everything (intro included), zR opens everything.
+smoke_keys zM
+smoke_expect '▸ How to read this list'
+smoke_expect '▸ Custom'
+smoke_expect '▸ Default'
+smoke_reject 'git blame line'
+smoke_keys zR
+smoke_expect '▾ How to read this list'
+smoke_expect 'git blame line'
 smoke_reject 'E[0-9]+:'
 
 smoke_keys q
-smoke_reject 'Custom  ·  fixture'
+smoke_reject 'Custom \('
 
 smoke_resize 80 24
 smoke_keys ':KeymapHelper' Enter
-smoke_expect 'Custom  ·  fixture'
+smoke_expect '▾ Custom'
 smoke_reject 'E[0-9]+:'
 smoke_stop
 rm -rf "$tmp"
