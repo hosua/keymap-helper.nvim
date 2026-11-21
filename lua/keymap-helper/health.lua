@@ -9,6 +9,14 @@ function M.check()
   else
     h.error "Neovim >= 0.11 is required"
   end
+  if pcall(require, "popup.float") then
+    h.ok "popup.nvim found"
+  else
+    h.error(
+      "popup.nvim is missing",
+      { "add `hosua/popup.nvim` (and `nvim-lua/plenary.nvim`) to the plugin's dependencies" }
+    )
+  end
   -- Which copy is loaded matters when a dev checkout and a lazy clone coexist.
   local src = debug.getinfo(require("keymap-helper").setup, "S").source:gsub("^@", "")
   h.info("loaded from " .. vim.fn.fnamemodify(src, ":~"))

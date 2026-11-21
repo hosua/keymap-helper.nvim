@@ -19,6 +19,9 @@ keypress or after 6 seconds.
 ## Requirements
 
 - Neovim >= 0.11
+- [popup.nvim](https://github.com/hosua/popup.nvim) (the list and hint windows) and
+  [plenary.nvim](https://github.com/nvim-lua/plenary.nvim), both listed as lazy.nvim
+  `dependencies`
 - Optional: [lazy.nvim](https://github.com/folke/lazy.nvim) (names the plugin behind lazy
   `keys` maps) and [which-key.nvim](https://github.com/folke/which-key.nvim) (names
   `<leader>x` groups when `group_by = "leader_prefix"`)
@@ -31,6 +34,7 @@ command if you turn the hint off:
 ```lua
 {
   "hosua/keymap-helper.nvim",
+  dependencies = { "hosua/popup.nvim", "nvim-lua/plenary.nvim" },
   cmd = { "KeymapHelper" },
   event = "VimEnter",
   opts = {},

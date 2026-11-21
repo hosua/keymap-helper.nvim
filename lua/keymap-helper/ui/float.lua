@@ -1,46 +1,16 @@
---- The only module that opens windows: the keymap list float and the
---- startup hint toast.
-local layout = require "keymap-helper.ui.layout"
+--- The only module that opens windows: the keymap list and the startup hint,
+--- both on popup.nvim's float layer.
+local float = require "popup.float"
+local geometry = require "popup.geometry"
 
 local M = {}
 
 local NS = vim.api.nvim_create_namespace "keymap_helper"
 
---- @param buf integer
 --- @param r KeymapHelperRender
-local function paint(buf, r)
-  vim.bo[buf].modifiable = true
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, r.lines)
-  vim.bo[buf].modifiable = false
-  vim.api.nvim_buf_clear_namespace(buf, NS, 0, -1)
-  for _, s in ipairs(r.spans) do
-    local opts = { hl_group = s.hl }
-    if s.col_end == -1 then
-      opts.end_row = s.row + 1
-    else
-      opts.end_col = s.col_end
-    end
-    vim.api.nvim_buf_set_extmark(buf, NS, s.row, s.col_start, opts)
-  end
-end
-
---- @param height integer
---- @param width integer
---- @return table
-local function geometry(width, height)
-  return {
-    relative = "editor",
-    width = width,
-    height = height,
-    row = math.max(0, math.floor((vim.o.lines - height) / 2) - 1),
-    col = math.max(0, math.floor((vim.o.columns - width) / 2)),
-  }
-end
-
---- @param r KeymapHelperRender
---- @return integer
-local function height_for(r)
-  return math.max(1, math.min(#r.lines, vim.o.lines - 8))
+--- @param max_width integer
+local function rect_for(r, max_width)
+  return geometry.list(geometry.env(), max_width, #r.lines)
 end
 
 --- Scrollable, focused float holding the rendered list. Owns the fold
@@ -54,25 +24,23 @@ function M.open_list(state, view, opts)
   local model = require "keymap-helper.model"
   local r = render.render(state, view)
 
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.bo[buf].buftype = "nofile"
-  vim.bo[buf].bufhidden = "wipe"
-  vim.bo[buf].filetype = "keymap-helper"
-  paint(buf, r)
-
-  local width = math.max(20, math.min(opts.max_width, vim.o.columns - 6))
-  local win = vim.api.nvim_open_win(
-    buf,
-    true,
-    vim.tbl_extend("force", geometry(width, height_for(r)), {
-      style = "minimal",
-      border = "rounded",
-      title = opts.title,
-      title_pos = "center",
-    })
-  )
-  vim.wo[win].cursorline = true
-  vim.wo[win].wrap = false
+  local rect = rect_for(r, opts.max_width)
+  -- winhl keeps the list on the theme's own float groups instead of popup's
+  -- Popup* links. "EndOfBuffer:" is what style = "minimal" sets itself, and
+  -- an explicit winhl replaces it.
+  local f = float.open {
+    rect = rect,
+    lines = r.lines,
+    spans = r.spans,
+    ns = NS,
+    title = opts.title,
+    title_pos = "center",
+    border = "rounded",
+    filetype = "keymap-helper",
+    winhl = "EndOfBuffer:",
+    wo = { cursorline = true },
+  }
+  local win, buf = f.win, f.buf
 
   --- Apply an action, repaint, resize, and park the cursor on `id`'s header.
   --- @param action KeymapHelperAction
@@ -80,8 +48,13 @@ function M.open_list(state, view, opts)
   local function apply(action, id)
     view = model.reduce(view, action)
     r = render.render(state, view)
-    paint(buf, r)
-    vim.api.nvim_win_set_config(win, geometry(width, height_for(r)))
+    float.paint(f, r)
+    -- The width stays what it was at open and the column follows that width;
+    -- only the height and the row are recomputed.
+    local next_rect = rect_for(r, opts.max_width)
+    next_rect.width = rect.width
+    next_rect.col = math.max(0, math.floor((vim.o.columns - rect.width) / 2))
+    float.configure(f, next_rect, opts.title, nil, { title_pos = "center" })
     local row = id and render.row_of(r, id) or 0
     vim.api.nvim_win_set_cursor(win, { math.min(row + 1, #r.lines), 0 })
   end
@@ -140,61 +113,17 @@ function M.open_list(state, view, opts)
   return win, buf
 end
 
---- Non-focusable, self-closing hint. Closes on the first cursor movement,
---- insert, or buffer switch, so `nvim some-file` is never interrupted.
+--- Non-focusable, self-closing hint (popup.float.toast).
 --- @param lines string[]
 --- @param opts { timeout_ms: integer, position: "center"|"bottom_right"|nil }
 --- @return integer win
 function M.toast(lines, opts)
-  -- A blank line above and below and two columns either side: a bare line
-  -- of text against the border reads as cramped.
-  local text = { "" }
-  for _, line in ipairs(lines) do
-    table.insert(text, "  " .. line .. "  ")
-  end
-  table.insert(text, "")
-
-  local width = 0
-  for _, l in ipairs(text) do
-    width = math.max(width, vim.fn.strdisplaywidth(l))
-  end
-  local geo = layout.toast(width, #text, vim.o.columns, vim.o.lines, opts.position)
-
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.api.nvim_buf_set_lines(buf, 0, -1, false, text)
-  vim.bo[buf].modifiable = false
-  vim.bo[buf].bufhidden = "wipe"
-
-  local win = vim.api.nvim_open_win(buf, false, {
-    relative = "editor",
-    width = geo.width,
-    height = geo.height,
-    row = geo.row,
-    col = geo.col,
-    style = "minimal",
+  return float.toast(lines, {
+    timeout_ms = opts.timeout_ms,
+    position = opts.position,
     border = "rounded",
-    focusable = false,
-    noautocmd = true,
-    zindex = 60,
+    winhl = "FloatBorder:KeymapHelperHintBorder",
   })
-  vim.wo[win].winhighlight = "FloatBorder:KeymapHelperHintBorder"
-
-  local closed = false
-  local function close()
-    if closed then
-      return
-    end
-    closed = true
-    if vim.api.nvim_win_is_valid(win) then
-      vim.api.nvim_win_close(win, true)
-    end
-  end
-  vim.api.nvim_create_autocmd({ "CursorMoved", "InsertEnter", "BufLeave", "WinScrolled" }, {
-    once = true,
-    callback = close,
-  })
-  vim.defer_fn(close, opts.timeout_ms)
-  return win
 end
 
 return M

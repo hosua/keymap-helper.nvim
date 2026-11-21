@@ -9,6 +9,7 @@ tmp=$(mktemp -d)
 mkdir -p "$tmp/c/nvim"
 cat > "$tmp/c/nvim/init.lua" <<LUA
 vim.opt.runtimepath:prepend("$root")
+dofile("$root/tests/deps.lua").setup("$root")
 vim.g.mapleader = " "
 vim.cmd "runtime plugin/keymap-helper.lua"
 require("keymap-helper").setup { keymap = false }

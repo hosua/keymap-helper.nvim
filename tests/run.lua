@@ -10,6 +10,7 @@ local this = debug.getinfo(1, "S").source:gsub("^@", "")
 local root = vim.fn.fnamemodify(this, ":p:h:h")
 vim.opt.runtimepath:prepend(root)
 package.path = root .. "/tests/?.lua;" .. package.path
+require("deps").setup(root)
 
 local src = debug.getinfo(require("keymap-helper").setup, "S").source:gsub("^@", "")
 if vim.fn.fnamemodify(src, ":p"):sub(1, #root) ~= root then

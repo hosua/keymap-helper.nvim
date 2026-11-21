@@ -4,6 +4,7 @@
 -- smokes exercise the default key.
 local root = vim.fn.fnamemodify(debug.getinfo(1, "S").source:gsub("^@", ""), ":p:h:h:h")
 vim.opt.runtimepath:prepend(root)
+dofile(root .. "/tests/deps.lua").setup(root)
 vim.g.mapleader = " "
 vim.cmd "runtime plugin/keymap-helper.lua"
 
