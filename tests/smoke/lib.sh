@@ -38,3 +38,10 @@ smoke_reject() {
   echo "  ok    reject /$1/"
 }
 smoke_stop() { tmux -L "$SMOKE_SOCK" kill-server 2>/dev/null || true; trap - EXIT; }
+# Remove a temp dir after smoke_stop. nvim may still be writing shada/state
+# into it for a moment after its tmux server dies, so retry instead of failing.
+smoke_rmdir() {
+  local i
+  for i in 1 2 3 4 5; do rm -rf "$1" 2>/dev/null && return 0; sleep 0.3; done
+  echo "  warn  could not remove $1"
+}

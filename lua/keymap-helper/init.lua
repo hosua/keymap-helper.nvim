@@ -9,6 +9,7 @@ local config = require "keymap-helper.config"
 --- @param opts table|nil user overrides, merged over config.defaults
 function M.setup(opts)
   local cfg = config.resolve(opts)
+  require("keymap-helper.keymap").apply(cfg.keymap)
   if not cfg.hint.enabled then
     return
   end
@@ -27,6 +28,13 @@ function M.setup(opts)
   end
 end
 
+--- Start recording which file calls vim.keymap.set (opt-in). Call it from the
+--- first lines of init.lua, before plugins cache `vim.keymap.set`.
+--- @return boolean installed true when the wrapper is active
+function M.track()
+  return require("keymap-helper.track").install()
+end
+
 --- Open the grouped keymap list.
 --- @return integer win
 function M.show()
@@ -34,10 +42,14 @@ function M.show()
   local collect = require "keymap-helper.collect"
   local model = require "keymap-helper.model"
   require("keymap-helper.highlights").apply()
-  local state = model.build(cfg, model.gather(cfg), collect.normalize, collect.display)
-  local r = require("keymap-helper.render").render(state)
+  local env = { mapleader = vim.g.mapleader, maplocalleader = vim.g.maplocalleader }
+  local state = model.build(cfg, model.gather(cfg), collect.normalize, collect.display, env)
   return (
-    require("keymap-helper.ui.float").open_list(r, { title = cfg.window.title, max_width = cfg.window.max_width })
+    require("keymap-helper.ui.float").open_list(
+      state,
+      model.initial_view(state),
+      { title = cfg.window.title, max_width = cfg.window.max_width }
+    )
   )
 end
 
@@ -51,7 +63,10 @@ function M.hint()
   local text = (cfg.hint.message:gsub("{key}", function()
     return key
   end))
-  return require("keymap-helper.ui.float").toast({ text }, { timeout_ms = cfg.hint.timeout_ms })
+  return require("keymap-helper.ui.float").toast(
+    { text },
+    { timeout_ms = cfg.hint.timeout_ms, position = cfg.hint.position }
+  )
 end
 
 return M
