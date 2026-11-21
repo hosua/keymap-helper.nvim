@@ -1,14 +1,25 @@
 --- :KeymapHelper <sub> [args] dispatcher and its completion.
+--- A bare :KeymapHelper opens the list.
 local M = {}
 
 --- @type table<string, fun(args: string[], bang: boolean)>
-M.subcommands = {}
+M.subcommands = {
+  show = function()
+    require("keymap-helper").show()
+  end,
+  hint = function()
+    require("keymap-helper").hint()
+  end,
+  health = function()
+    vim.cmd "checkhealth keymap-helper"
+  end,
+}
 
 --- @param fargs string[]
 --- @param bang boolean
 function M.dispatch(fargs, bang)
-  local sub = fargs[1]
-  local fn = sub and M.subcommands[sub]
+  local sub = fargs[1] or "show"
+  local fn = M.subcommands[sub]
   if not fn then
     local names = vim.tbl_keys(M.subcommands)
     table.sort(names)
