@@ -193,3 +193,26 @@ describe("config keymap", function()
     end
   end)
 end)
+
+describe("config template option", function()
+  it("defaults to lua/mappings.template.json -> lua/mappings.lua with backups", function()
+    eq(
+      { path = "lua/mappings.template.json", target = "lua/mappings.lua", backups = true },
+      require("keymap-helper.config").defaults.template
+    )
+  end)
+
+  it("rejects a non-boolean backups and reports a misspelt key", function()
+    local ok_, err = pcall(function()
+      return quiet(function()
+        return config.resolve { template = { backups = "yes" } }
+      end)
+    end)
+    eq(false, ok_)
+    ok(tostring(err):find("template.backups", 1, true))
+    local _, unknown = quiet(function()
+      return config.resolve { template = { pth = "x" } }
+    end)
+    eq({ "template.pth" }, unknown)
+  end)
+end)

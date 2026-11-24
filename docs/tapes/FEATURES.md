@@ -15,7 +15,7 @@ Last full inventory: 2026-10-03 at commit `86d92cb`.
 | F02 | :KeymapHelper / :KeymapHelper show opens the list | command | `:KeymapHelper` | lua/keymap-helper/commands.lua:8 | commands.gif | f295: "Keymaps" float open after bare `:KeymapHelper` | covered |
 | F03 | :KeymapHelper hint shows the hint again | command | `:KeymapHelper hint` | lua/keymap-helper/commands.lua:11 | commands.gif | f100: toast "Type <Space>km to view a list of all keymappings!" with `:KeymapHelper hint` in the cmdline | covered |
 | F04 | :KeymapHelper health = :checkhealth keymap-helper | command | `:KeymapHelper health` | lua/keymap-helper/commands.lua:14, health.lua | health.png | whole image: health:// buffer with sections, detection and "Custom: 15 rows" lines | covered |
-| F05 | Unknown subcommand error | state | `:KeymapHelper bogus` | lua/keymap-helper/commands.lua:26 | commands.gif | f187: red message `unknown subcommand "bogus" (have: health, hint, show)` | covered |
+| F05 | Unknown subcommand error | state | `:KeymapHelper bogus` | lua/keymap-helper/commands.lua:26 | commands.gif | f187: red message `unknown subcommand "bogus" (have: generate, health, hint, import, show)` | covered |
 | F06 | Centered startup hint | view | start nvim | lua/keymap-helper/init.lua:57, ui/float.lua:150 | hint.png | whole image: centered bordered box "Type <Space>km to view a list of all keymappings!" | covered |
 | F07 | "How to read this list" legend, expanded (leader keys, mode letters, key notation) | view | open list | lua/keymap-helper/intro.lua | intro.png | whole image: `<leader> <Space>`, `<localleader> \ (default)`, Modes and Keys lines | covered |
 | F08 | <CR> folds the intro (cursor starts on it) | keymap | `<CR>` on the intro header | lua/keymap-helper/ui/float.lua:97 | fold-keys.gif | f75: intro shown as "▸ How to read this list" after `<CR>` (f0 had it open) | covered |
@@ -59,3 +59,4 @@ Last full inventory: 2026-10-03 at commit `86d92cb`.
 | nvchad-submenu.gif | gif | F14 F16 | 331 KB | 11.8 s |
 | fold-keys.gif | gif | F08 F15 F17 | 383 KB | 12.5 s |
 | commands.gif | gif | F02 F03 F05 F17 | 167 KB | 15.8 s |
+| F31 | :KeymapHelper import asks before replacing a stale template | view | `:KeymapHelper import` | lua/keymap-helper/commands.lua:11, template/init.lua | import-confirm.png | whole image: popup "keymap-helper" with y / <CR> yes, n / q no (message truncated at right edge) | covered |

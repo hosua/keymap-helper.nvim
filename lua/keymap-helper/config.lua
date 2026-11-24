@@ -64,6 +64,10 @@ M.defaults = {
   },
   -- Short "how to read this list" header (leader keys, mode letters).
   intro = { enabled = true, collapsed = false },
+  -- The keymap template: a JSON file that is the source of truth, and the Lua
+  -- file :KeymapHelper generate writes from it. Relative paths resolve against
+  -- stdpath("config"). `backups = false` skips the .bak copy before an overwrite.
+  template = { path = "lua/mappings.template.json", target = "lua/mappings.lua", backups = true },
 }
 
 local resolved
@@ -143,6 +147,9 @@ local function validate(cfg)
   end, "a positive integer")
   vim.validate("header_pattern", cfg.header_pattern, "string")
   vim.validate("modes", cfg.modes, "table")
+  vim.validate("template.path", cfg.template.path, "string")
+  vim.validate("template.target", cfg.template.target, "string")
+  vim.validate("template.backups", cfg.template.backups, "boolean")
   vim.validate("hint.message", cfg.hint.message, "string")
   vim.validate("hint.position", cfg.hint.position, function(v)
     return v == "center" or v == "bottom_right"

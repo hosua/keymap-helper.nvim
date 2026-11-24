@@ -1,5 +1,6 @@
 -- Sections: filtered by an lhs pattern, plugin maps grouped by plugin, the rest grouped by <leader>x.
 vim.opt.rtp:prepend(vim.env.KMH_REPO)
+dofile(vim.env.KMH_REPO .. "/tests/deps.lua").setup(vim.env.KMH_REPO) -- popup.nvim and plenary.nvim, via POPUP_DIR / PLENARY_DIR
 for _, p in ipairs { "telescope.nvim", "gitsigns.nvim" } do -- stand-ins for installed plugins
   vim.opt.rtp:append(vim.env.KMH_DEMO .. "/demo/plugins/" .. p)
 end

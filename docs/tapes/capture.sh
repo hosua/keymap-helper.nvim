@@ -18,6 +18,7 @@
 #   nvchad-submenu   nvchad-submenu.gif   <CR> expands NvChad defaults, zM, zR                       (F14 F16)
 #   fold-keys        fold-keys.gif        l, h, za, <Tab>, <Esc>                                     (F08 F15 F17)
 #   commands         commands.gif         :KeymapHelper hint / bogus / bare, q                       (F02 F03 F05 F17)
+#   import-confirm   import-confirm.png   :KeymapHelper import asking before it replaces a stale template
 #
 # Coverage of every feature: docs/tapes/FEATURES.md
 # Needs: vhs (+ ttyd, ffmpeg, chromium), nvim >= 0.11. No X display needed (vhs is headless).
@@ -26,9 +27,10 @@
 # Shots run sequentially on purpose (one demo dir).
 set -euo pipefail
 
-DEFAULT_SHOTS=(default custom one-section intro hint hint-corner group-by undocumented health nvchad-submenu fold-keys commands)
+DEFAULT_SHOTS=(default custom one-section intro hint hint-corner group-by undocumented health nvchad-submenu fold-keys commands import-confirm)
 
 REPO="$(git rev-parse --show-toplevel)"
+OLD_HOME=$HOME
 DEMO=/tmp/kmh-demo # the only path that may appear in frames
 
 # shot slug -> demo config variant (docs/tapes/demo/<variant>)
@@ -37,6 +39,7 @@ variant_of() {
     default) echo default ;;
     custom | intro | health | nvchad-submenu | fold-keys | commands) echo custom ;;
     one-section | group-by | undocumented | hint-corner) echo "$1" ;;
+    import-confirm) echo import ;;
     hint) echo default ;;
     *) echo "unknown shot: $1 (known: ${DEFAULT_SHOTS[*]})" >&2; return 2 ;;
   esac
@@ -50,6 +53,14 @@ fresh_demo() { # fresh_demo <variant>: throwaway HOME/XDG, config = the variant,
   ln -s "$DEMO/demo/$1" "$DEMO/config/nvim"
 }
 
+# First checkout of a dependency found before HOME is redirected.
+first_dir() {
+  local d
+  for d in "$OLD_HOME/.local/share/nvim/lazy/$1" "$OLD_HOME/dev/hosua/nvim/submodules/$1" "$REPO/.tests/$1"; do
+    [[ -d $d ]] && { echo "$d"; return; }
+  done
+}
+
 shot() {
   local slug=$1 variant
   variant=$(variant_of "$slug")
@@ -57,6 +68,8 @@ shot() {
   export HOME="$DEMO/home" XDG_CONFIG_HOME="$DEMO/config" XDG_DATA_HOME="$DEMO/data" \
     XDG_STATE_HOME="$DEMO/state" XDG_CACHE_HOME="$DEMO/cache" \
     KMH_REPO="$DEMO/plugins/keymap-helper.nvim" KMH_DEMO="$DEMO" KMH_TRACK=0
+  # Dependencies are looked up by the demo configs through these (HOME is the throwaway dir).
+  export POPUP_DIR="${POPUP_DIR:-$(first_dir popup.nvim)}" PLENARY_DIR="${PLENARY_DIR:-$(first_dir plenary.nvim)}"
   [[ $slug == health ]] && export KMH_TRACK=1
   (cd "$REPO" && vhs "docs/tapes/$slug.tape")
 }

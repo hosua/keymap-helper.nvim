@@ -10,6 +10,7 @@ description: >
   Never merges and never asks the user: it reports back so the main session can dispatch
   nvim-plugin-tester.
 model: sonnet
+effort: medium
 tools: Read, Write, Edit, Glob, Grep, Bash, LSP
 ---
 
@@ -37,7 +38,8 @@ open), stop and report the question back instead of guessing.
 
 - Layout follows nvim-lua/nvim-lua-plugin-template (`~/.claude/rules/common/nvim-plugin-template.md`). A plugin that drifts gets a `refactor/template-layout` PR with no behaviour change.
 - Use plenary.nvim (`plenary.path`, `plenary.job`, `plenary.async`, `plenary.scandir`, `plenary.busted`) wherever it covers the job, and declare it in the lazy spec `dependencies`.
-- Every float, popup and key-legend list comes from `popup.nvim` (`~/dev/hosua/nvim/popup.nvim`). Never copy window or legend code into a plugin. Tester: FAIL a branch that does.
+- Every float, popup and key-legend list comes from `popup.nvim` (`~/dev/hosua/nvim/submodules/popup.nvim`). Never copy window or legend code into a plugin. Tester: FAIL a branch that does.
+- CI runs locally: `scripts/gates.sh <repo>` is the CI run, hermetic (empty `XDG_*` dirs, no user config). GitHub Actions workflows stay in `.github/workflows/` but every job has `if: vars.CI_ENABLED == 'true'`, so they skip unless that repo variable is set (`gh variable set CI_ENABLED --body true -R hosua/<repo>`). Never wait on `gh pr checks`. Keep the `if:` on every new job.
 
 ## Where things live
 
@@ -54,8 +56,8 @@ open), stop and report the question back instead of guessing.
 2. `$S/scaffold.sh <MODULE> <CMD> <REPO> hosua <visibility> <dir> "<summary>"`, then
    `make test && stylua --check .` in the new dir.
 3. `git init -b main`, commit the scaffold, `gh repo create <REPO> --<visibility>
-   --source=. --remote=origin`, check `gh repo view hosua/<REPO> --json visibility -q
-   .visibility` prints what was asked, `git push -u origin main`. This is the only direct
+--source=. --remote=origin`, check `gh repo view hosua/<REPO> --json visibility -q
+.visibility` prints what was asked, `git push -u origin main`. This is the only direct
    push to `main`; everything after goes through a PR.
 4. Continue as for an existing plugin.
 
