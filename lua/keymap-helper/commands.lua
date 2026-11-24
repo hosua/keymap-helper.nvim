@@ -2,12 +2,62 @@
 --- A bare :KeymapHelper opens the list.
 local M = {}
 
+--- Fit a confirm message to the popup: paths shortened (relative to `root`,
+--- else with ~), words wrapped to `width` display columns. A word wider than
+--- the popup (a long path) keeps its tail behind an ellipsis.
+--- @param message string
+--- @param width integer
+--- @param root string|nil
+--- @return string[]
+function M.wrap(message, width, root)
+  local home = vim.uv.os_homedir()
+  local function short(line)
+    if root and root ~= "" then
+      line = line:gsub(vim.pesc((root:gsub("/+$", "")) .. "/"), "")
+    end
+    if home and home ~= "" then
+      line = line:gsub(vim.pesc(home) .. "/", "~/")
+    end
+    return line
+  end
+  local function fit(word, width)
+    if vim.fn.strdisplaywidth(word) <= width then
+      return word
+    end
+    local chars = vim.fn.strchars(word)
+    local keep = chars - 1
+    while keep > 0 and vim.fn.strdisplaywidth("…" .. vim.fn.strcharpart(word, chars - keep)) > width do
+      keep = keep - 1
+    end
+    return "…" .. vim.fn.strcharpart(word, chars - keep)
+  end
+  local out = {}
+  for _, raw in ipairs(vim.split(message, "\n", { plain = true })) do
+    local line = short(raw)
+    local indent = line:match "^%s*"
+    local cur = indent
+    for word in line:gmatch "%S+" do
+      word = fit(word, width - vim.fn.strdisplaywidth(indent))
+      local sep = (cur == indent) and "" or " "
+      if vim.fn.strdisplaywidth(cur .. sep .. word) > width and cur ~= indent then
+        out[#out + 1] = cur
+        cur = indent .. word
+      else
+        cur = cur .. sep .. word
+      end
+    end
+    out[#out + 1] = cur
+  end
+  return out
+end
+
 --- Yes/no question in a popup.nvim float. `:KeymapHelper import!` and
 --- `generate!` skip it.
 --- @param message string
 --- @return boolean
 local function confirm(message)
-  local lines = vim.split(message, "\n", { plain = true })
+  local width = math.max(30, math.min(70, vim.o.columns - 10))
+  local lines = M.wrap(message, width, vim.fn.stdpath "config")
   lines[#lines + 1] = ""
   lines[#lines + 1] = "y / <CR> yes    n / q no"
   return require("popup.confirm").choose { title = "keymap-helper", lines = lines }

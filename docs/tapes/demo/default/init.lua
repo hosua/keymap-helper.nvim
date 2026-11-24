@@ -1,5 +1,6 @@
 -- Zero-config demo: setup {} and a few maps. <leader>km comes from the plugin itself.
 vim.opt.rtp:prepend(vim.env.KMH_REPO)
+dofile(vim.env.KMH_REPO .. "/tests/deps.lua").setup(vim.env.KMH_REPO) -- popup.nvim and plenary.nvim, via POPUP_DIR / PLENARY_DIR
 vim.g.mapleader = " "
 vim.cmd.colorscheme "habamax"
 

@@ -33,8 +33,8 @@ local SPECS = {
       { long = "--keep-headers", desc = "keep the file's box headers as categories (default: all uncategorized)" },
     },
     examples = {
-      { "kh-import --root=$HOME/.config/nvim", "imported 96 maps and 21 raw blocks into lua/mappings.template.json" },
-      { "kh-import --keep-headers --yes" },
+      { "kh-import --root=$HOME/.config/nvim", "imported 96 maps and 10 raw blocks into lua/mappings.template.json" },
+      { "kh-import --keep-headers --yes", "imported 96 maps and 11 raw blocks into lua/mappings.template.json" },
     },
   },
   generate = {

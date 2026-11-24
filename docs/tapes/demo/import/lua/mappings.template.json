@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "target": "lua/mappings.lua",
+  "preamble": ["local map = vim.keymap.set"],
+  "categories": [
+    { "id": "uncategorized", "title": "Uncategorized" }
+  ],
+  "entries": [
+    {
+      "id": "e001",
+      "kind": "map",
+      "category": "uncategorized",
+      "modes": ["n"],
+      "lhs": ";",
+      "rhs": ":",
+      "opts": { "desc": "enter command mode" }
+    }
+  ]
+}
