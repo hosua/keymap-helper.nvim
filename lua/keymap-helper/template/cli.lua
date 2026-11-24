@@ -16,6 +16,7 @@ local COMMON = {
   { long = "--target", value = "file", arg = "FILE", desc = "mappings file (default: the template's target)" },
   { long = "--no-backup", desc = "do not keep a .bak copy before overwriting" },
   { short = "-y", long = "--yes", desc = "answer yes to the overwrite question" },
+  { long = "--json", desc = "print the result as one JSON object instead of a sentence" },
   {
     long = "--completion",
     value = "shell",
@@ -46,13 +47,50 @@ local SPECS = {
         "wrote lua/mappings.lua (backup: lua/mappings_2026_11_24_09:15:02.bak)",
       },
       { "kh-generate --check" },
+      {
+        "kh-generate --json --yes",
+        '{"status":"written","target":"/home/you/.config/nvim/lua/mappings.lua","backup":"..."}',
+      },
     },
+  },
+}
+
+SPECS.template = {
+  summary = "read and write the keymap template as JSON, for the terminal UI",
+  usage = {
+    "kh-template show [OPTIONS]",
+    "kh-template preview [--keep-headers] [OPTIONS]",
+    "kh-template save [OPTIONS] < plan.json",
+  },
+  commands = {
+    { "show", "print the template and the Lua line of every map" },
+    { "preview", "print what an import would build, writing nothing" },
+    { "save", "apply a plan read from stdin to the template (old file backed up)" },
+  },
+  positional = { "show", "preview", "save" },
+  skip = { ["--yes"] = true, ["--json"] = true },
+  flags = {
+    { long = "--keep-headers", desc = "preview: keep the file's box headers as categories" },
+  },
+  examples = {
+    {
+      "kh-template show --root=$HOME/.config/nvim",
+      '{"status":"ready","categories":[...],"entries":[...],"calls":{...}}',
+    },
+    { "kh-template preview --keep-headers" },
+    { 'echo \'{"categories":[...],"order":[...]}\' | kh-template save' },
   },
 }
 
 local function flags_of(cmd)
   local all = vim.deepcopy(SPECS[cmd].flags)
   vim.list_extend(all, vim.deepcopy(COMMON))
+  local skip = SPECS[cmd].skip
+  if skip then
+    all = vim.tbl_filter(function(f)
+      return not skip[f.long]
+    end, all)
+  end
   return all
 end
 M.flags_of = flags_of
@@ -87,14 +125,11 @@ function M.help(cmd, plugin_root, color)
   end
   local repo = repo_name(plugin_root)
   local stem = ("_%s-%s"):format(repo, name)
-  local out = {
-    bold .. "USAGE" .. reset,
-    "  $ " .. name .. " [OPTIONS]",
-    "",
-    spec.summary,
-    "",
-    bold .. "OPTIONS" .. reset,
-  }
+  local out = { bold .. "USAGE" .. reset }
+  for _, u in ipairs(spec.usage or { name .. " [OPTIONS]" }) do
+    out[#out + 1] = "  $ " .. u
+  end
+  vim.list_extend(out, { "", spec.summary, "", bold .. "OPTIONS" .. reset })
   for i, f in ipairs(flags) do
     out[#out + 1] = ("  %-" .. width .. "s  %s"):format(labels[i], f.desc)
   end
@@ -118,6 +153,13 @@ function M.help(cmd, plugin_root, color)
     "  # fish",
     ("  $ %s --completion=fish > ~/.config/fish/conf.d/%s.fish"):format(name, stem),
   })
+  if spec.commands then
+    out[#out + 1] = ""
+    out[#out + 1] = bold .. "COMMANDS" .. reset
+    for _, c in ipairs(spec.commands) do
+      out[#out + 1] = ("  %-9s %s"):format(c[1], c[2])
+    end
+  end
   return table.concat(out, "\n") .. "\n"
 end
 
@@ -131,7 +173,7 @@ function M.completion(cmd, shell, plugin_root)
   local out = {}
   if shell == "bash" then
     local fn = "_" .. snake(repo_name(plugin_root)) .. "_" .. snake(name)
-    local words, dirs, files = {}, {}, {}
+    local words, dirs, files = vim.deepcopy(SPECS[cmd].positional or {}), {}, {}
     for _, f in ipairs(flags) do
       words[#words + 1] = f.long
       if f.short then
@@ -207,28 +249,38 @@ function M.parse(cmd, argv)
     local a = argv[i]
     local name, inline = a:match "^(%-%-[%w-]+)=(.*)$"
     local f = by_long[name or a] or by_short[a]
-    if not f then
+    local sub = SPECS[cmd].positional
+    if not f and sub and not vim.startswith(a, "-") then
+      if out.sub then
+        return nil, ("unexpected argument %s"):format(a)
+      end
+      if not vim.tbl_contains(sub, a) then
+        return nil, ("unknown command %s (use %s)"):format(a, table.concat(sub, ", "))
+      end
+      out.sub = a
+    elseif not f then
       return nil, ("unknown option %s"):format(a)
-    end
-    local key = f.long:sub(3):gsub("-", "_")
-    if f.value then
-      local v = inline
-      if v == nil then
-        i = i + 1
-        v = argv[i]
-      end
-      if v == nil or v == "" then
-        return nil, ("%s needs a value"):format(f.long)
-      end
-      if f.choices and not vim.tbl_contains(f.choices, v) then
-        return nil, ("%s must be one of: %s"):format(f.long, table.concat(f.choices, ", "))
-      end
-      out[key] = v
     else
-      if inline then
-        return nil, ("%s takes no value"):format(f.long)
+      local key = f.long:sub(3):gsub("-", "_")
+      if f.value then
+        local v = inline
+        if v == nil then
+          i = i + 1
+          v = argv[i]
+        end
+        if v == nil or v == "" then
+          return nil, ("%s needs a value"):format(f.long)
+        end
+        if f.choices and not vim.tbl_contains(f.choices, v) then
+          return nil, ("%s must be one of: %s"):format(f.long, table.concat(f.choices, ", "))
+        end
+        out[key] = v
+      else
+        if inline then
+          return nil, ("%s takes no value"):format(f.long)
+        end
+        out[key] = true
       end
-      out[key] = true
     end
     i = i + 1
   end
@@ -269,7 +321,41 @@ local function ask_terminal(message)
   return ans ~= nil and ans:lower():match "^y" ~= nil
 end
 
---- @param cmd string "import"|"generate"
+--- kh-template: JSON on stdout, errors on stderr, exit 1 on a failure.
+--- @return integer exit code
+function M.run_template(args, tpl, name)
+  local opts = {
+    root = args.root,
+    template = args.template,
+    target = args.target,
+    keep_headers = args.keep_headers,
+    backups = (args.no_backup and false) or nil,
+  }
+  local res, err
+  if args.sub == "show" then
+    res, err = tpl.show(opts)
+  elseif args.sub == "preview" then
+    res, err = tpl.preview(opts)
+  elseif args.sub == "save" then
+    local ok, plan = pcall(vim.json.decode, io.read "*a", { luanil = { object = true, array = true } })
+    if not ok or type(plan) ~= "table" then
+      io.stderr:write(name .. ": stdin is not a JSON plan\ntry `" .. name .. " --help`\n")
+      return 2
+    end
+    res, err = tpl.save_plan(plan, opts)
+  else
+    io.stderr:write(name .. ": say what to do: show, preview or save\ntry `" .. name .. " --help`\n")
+    return 2
+  end
+  if not res then
+    io.stderr:write(name .. ": " .. err .. "\n")
+    return 1
+  end
+  io.stdout:write(vim.json.encode(res) .. "\n")
+  return 0
+end
+
+--- @param cmd string "import"|"generate"|"template"
 --- @param argv string[]
 --- @param plugin_root string
 --- @return integer exit code
@@ -293,6 +379,9 @@ function M.run(cmd, argv, plugin_root)
     return 1
   end
   local tpl = require "keymap-helper.template"
+  if cmd == "template" then
+    return M.run_template(args, tpl, name)
+  end
   local interactive = vim.uv.guess_handle(0) == "tty"
   local opts = {
     root = args.root,
@@ -317,7 +406,11 @@ function M.run(cmd, argv, plugin_root)
     io.stderr:write(name .. ": " .. e .. "\n")
     return (e:find("needs a yes", 1, true) and 2) or 1
   end
-  io.stdout:write(require("keymap-helper.template.report").line(cmd, res, opts.root) .. "\n")
+  if args.json then
+    io.stdout:write(vim.json.encode(res) .. "\n")
+  else
+    io.stdout:write(require("keymap-helper.template.report").line(cmd, res, opts.root) .. "\n")
+  end
   return 0
 end
 

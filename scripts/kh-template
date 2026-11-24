@@ -1,0 +1,6 @@
+#!/usr/bin/env -S nvim -l
+-- keymap-helper: kh-template. Run with --help. The work is in lua/keymap-helper/template/.
+local this = vim.uv.fs_realpath((debug.getinfo(1, "S").source:gsub("^@", "")))
+local root = vim.fn.fnamemodify(this, ":h:h")
+vim.opt.runtimepath:prepend(root)
+os.exit(require("keymap-helper.template.cli").run("template", arg, root))

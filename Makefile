@@ -1,4 +1,4 @@
-.PHONY: test integration smoke fmt check
+.PHONY: test integration smoke fmt check tui-test
 
 # Every target runs against a throwaway XDG tree: no user config or plugins on
 # the runtimepath (so CI and local runs see the same thing), and a bug can
@@ -8,6 +8,13 @@ XDG_TMP = tmp=$$(mktemp -d) && \
 
 test:
 	@$(XDG_TMP) nvim --headless -u NONE -l tests/run.lua spec; rc=$$?; rm -rf $$tmp; exit $$rc
+	@$(MAKE) --no-print-directory tui-test
+
+# The terminal UI (tui/): bun test, TypeScript and biome. It is part of `make test`, so
+# gates.sh runs it. Without bun it prints why it skipped and passes.
+tui-test:
+	@if ! command -v bun >/dev/null 2>&1; then echo "tui-test: bun is not installed, skipping the terminal UI tests (https://bun.sh)"; exit 0; fi; \
+	cd tui && bun install --frozen-lockfile >/dev/null && bun test && bunx tsc --noEmit && bunx biome check . && echo "tui-test: ok"
 
 integration:
 	@$(XDG_TMP) nvim --headless -u NONE -l tests/run.lua integration; rc=$$?; rm -rf $$tmp; exit $$rc
