@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "target": "lua/mappings.lua",
+  "preamble": [
+    "require \"nvchad.mappings\"",
+    "local map = vim.keymap.set"
+  ],
+  "categories": [
+    { "id": "uncategorized", "title": "Uncategorized" },
+    { "id": "general", "title": "General", "subtitle": "keys everyone uses" }
+  ],
+  "entries": [
+    {
+      "id": "e001",
+      "kind": "map",
+      "category": "general",
+      "modes": ["n"],
+      "lhs": ";",
+      "rhs": ":",
+      "opts": { "desc": "CMD enter command mode" }
+    },
+    {
+      "id": "e002",
+      "kind": "map",
+      "category": "general",
+      "modes": ["i"],
+      "lhs": "jk",
+      "rhs": "<ESC>"
+    },
+    {
+      "id": "e003",
+      "kind": "map",
+      "category": "general",
+      "modes": ["n", "x"],
+      "lhs": "<leader>q",
+      "lua": [
+        "function()",
+        "  require(\"configs.browser\").open()",
+        "end"
+      ],
+      "opts": { "desc": "Search \"brave\"", "silent": true },
+      "opts_raw": { "callback_hint": "vim.g.x or 1" },
+      "comment": "-- Opens the search popup."
+    },
+    {
+      "id": "e004",
+      "kind": "raw",
+      "category": "uncategorized",
+      "text": "local seen = {}"
+    },
+    {
+      "id": "e005",
+      "kind": "map",
+      "category": "uncategorized",
+      "modes": ["n"],
+      "lhs": "<leader>/",
+      "rhs": "<cmd>Telescope live_grep<CR>",
+      "call": "vim.keymap.set",
+      "trailing": "-- grep"
+    }
+  ]
+}
