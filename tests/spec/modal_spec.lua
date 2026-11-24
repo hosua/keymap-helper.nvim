@@ -124,6 +124,22 @@ describe("modal list", function()
     reset()
   end)
 
+  it("leaves no copy of the list behind after :split, :vsplit or :tab split", function()
+    reset()
+    local win, buf = open()
+    for _, cmd in ipairs { "split", "vsplit", "tab split" } do
+      vim.cmd(cmd)
+      settle()
+      eq(win, vim.api.nvim_get_current_win(), cmd)
+      eq({ win }, vim.fn.win_findbuf(buf), cmd)
+    end
+    vim.cmd "KeymapHelper close"
+    settle()
+    eq({}, vim.fn.win_findbuf(buf))
+    eq(1, #vim.api.nvim_list_tabpages())
+    reset()
+  end)
+
   it("a second show only refocuses", function()
     reset()
     local win = open()

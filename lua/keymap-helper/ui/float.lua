@@ -38,8 +38,32 @@ local function make_modal(win, buf)
     end)
   end
   vim.api.nvim_create_autocmd({ "WinLeave", "WinEnter" }, { group = group, callback = pull_back })
+  -- :split, :vsplit and :tab split in the list copy the window, buffer
+  -- included. Close every such copy so none is left showing a dead list.
+  local function close_copies()
+    if not vim.api.nvim_buf_is_valid(buf) then
+      return
+    end
+    for _, w in ipairs(vim.fn.win_findbuf(buf)) do
+      if w ~= win and vim.api.nvim_win_is_valid(w) and vim.api.nvim_win_get_config(w).relative == "" then
+        pcall(vim.api.nvim_win_close, w, true)
+      end
+    end
+  end
+  vim.api.nvim_create_autocmd({ "WinNew", "BufWinEnter" }, {
+    group = group,
+    callback = function()
+      vim.schedule(close_copies)
+    end,
+  })
   local function teardown()
     pcall(vim.api.nvim_del_augroup_by_id, group)
+    vim.schedule(function()
+      close_copies()
+      if vim.api.nvim_buf_is_valid(buf) and #vim.fn.win_findbuf(buf) == 0 then
+        pcall(vim.api.nvim_buf_delete, buf, { force = true })
+      end
+    end)
     if current and current.win == win then
       current = nil
     end

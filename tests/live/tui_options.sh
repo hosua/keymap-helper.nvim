@@ -10,6 +10,8 @@ S=${NVIM_PLUGIN_SCRIPTS:-$HOME/.config/nvim/.claude/skills/nvim-create-and-integ
 source "${S}/live_lib.sh"
 REPO=$(cd "$(dirname "$0")/../.." && pwd)
 fail=0
+# shellcheck source=tests/ready_lib.sh
+source "$(dirname "$0")/../ready_lib.sh"
 chk() { "$@" || fail=1; }
 live_setup
 root="${LIVE_TMP}/root"
@@ -21,7 +23,8 @@ start() { # width height extra-args...
   smoke_start "$w" "$h" env XDG_CONFIG_HOME="${LIVE_TMP}/c" XDG_DATA_HOME="${LIVE_TMP}/d" \
     XDG_STATE_HOME="${LIVE_TMP}/state" XDG_CACHE_HOME="${LIVE_TMP}/x" COLORTERM=truecolor \
     bun "${REPO}/tui/src/index.tsx" --root "${root}" "$@"
-  sleep 3
+  live_wait_screen '[A-Za-z]{4}'
+  sleep 1
 }
 for size in "80 24" "140 40"; do
   rm -f "${state}"
