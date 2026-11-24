@@ -97,7 +97,7 @@ describe(":KeymapHelper import / generate wiring", function()
 end)
 
 describe("confirm message wrapping", function()
-  local root = "/home/u/.config/nvim"
+  local root = "/cfg/nvim"
   local msg = table.concat({
     "This file does not match the template:",
     "  " .. root .. "/lua/mappings.lua",
