@@ -14,6 +14,9 @@ COMMANDS                                              *keymap-helper-commands*
 :KeymapHelper [show]                                  *:KeymapHelper*
         Open the keymap list.
 
+:KeymapHelper close                                   *keymap-helper-close*
+        Close the keymap list from any window. Use it if focus ever gets stuck.
+
 :KeymapHelper hint
         Show the startup hint again.
 
@@ -53,7 +56,7 @@ scripts/kh-template prints the template as JSON (`show`, `preview`) and applies
 a category plan from stdin (`save`); the terminal UI in tui/ uses it. Start the
 UI with `bun run tui/src/index.tsx --root DIR` (needs bun), see the README.
 In the UI, `O` opens the options screen: j/k pick a row, h/l change its value,
-<Esc> closes it. The one option is Truecolor (True or False). It defaults to True
+q, <Esc>, O or <CR> closes it. The one option is Truecolor (True or False). It defaults to True
 when $COLORTERM is truecolor or 24bit; False maps every colour to the nearest of
 xterm's 256. The choice is saved in
 $XDG_STATE_HOME/nvim/keymap-helper/tui.json. `--truecolor=true|false` overrides
@@ -67,7 +70,14 @@ Keys inside the list:
     l / h           open / close it
     zR / zM         open / close every section
     <LeftMouse>     on a section header: toggle it
-    q <Esc>         close
+    q               close
+
+The list is modal: focus cannot leave it until you press q. A click in
+another window, <C-w>w, :wincmd or :buffer all end with focus back in the
+list. Floats opened from it (the editor terminal, confirm questions) can take
+focus, and focus returns to the list when they close. :KeymapHelper close
+closes it from anywhere. A second :KeymapHelper while it is open only
+refocuses it.
 
 ==============================================================================
 SETUP                                                 *keymap-helper-setup*

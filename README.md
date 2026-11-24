@@ -134,6 +134,7 @@ and explains mode letters and key notation. Rows are coloured by role: mode, key
 | Command | What it does |
 |---|---|
 | `:KeymapHelper` / `:KeymapHelper show` | Open the keymap list |
+| `:KeymapHelper close` | Close the keymap list from any window (escape hatch) |
 | `:KeymapHelper hint` | Show the startup hint again |
 | `:KeymapHelper health` | Same as `:checkhealth keymap-helper` |
 | `:KeymapHelper import [drop_headers]` | Build the keymap template from your mappings file (see below) |
@@ -404,7 +405,7 @@ override. Run `kh-template analyze` for the exact answer.
 
 `O` opens the options screen. Each option is a row with its title centred and its value
 below it between arrows, like btop's options menu. `j` `k` (or the arrows) pick a row,
-`h` `l` (or left and right) change its value, `<Esc>` closes the screen. A change applies
+`h` `l` (or left and right) change its value, and `q`, `<Esc>`, `O` or `<CR>` closes the screen. A change applies
 at once and is saved.
 
 | Option | Values | Default |
@@ -476,7 +477,13 @@ can flag an entry without the UI knowing about it.
 | `l` / `h` | Open / close the section under the cursor |
 | `zR` / `zM` | Open / close every section (the intro too) |
 | Left click on a section header | Toggle it (any other click works as normal) |
-| `q`, `<Esc>` | Close |
+| `q` | Close |
+
+The list is modal. Focus stays in it until you press `q`: a click in another window, `<C-w>w`,
+`:wincmd` and `:buffer` all end with focus back in the list. Floats opened from it (the editor
+terminal, confirm questions) can take focus, and focus returns to the list when they close.
+`:KeymapHelper close` closes it from anywhere if focus ever gets stuck. A second `<leader>km`
+while it is open only refocuses it.
 
 ## How maps are sorted into sections
 

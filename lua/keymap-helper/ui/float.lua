@@ -7,6 +7,70 @@ local M = {}
 
 local NS = vim.api.nvim_create_namespace "keymap_helper"
 
+--- The open list, if any. There is at most one.
+--- @type { win: integer, buf: integer }|nil
+local current
+
+--- Make `win` modal: whenever focus lands anywhere else, put it back.
+--- Floats are exempt, because everything keymap-helper opens while the list
+--- is up (the editor terminal, confirm questions, popup menus) is a float.
+--- The autocmd group dies with the window, however the window dies.
+--- @param win integer
+--- @param buf integer
+local function make_modal(win, buf)
+  local group = vim.api.nvim_create_augroup("KeymapHelperModal" .. win, { clear = true })
+  local pending = false
+  local function pull_back()
+    if pending then
+      return
+    end
+    pending = true
+    vim.schedule(function()
+      pending = false
+      if not vim.api.nvim_win_is_valid(win) then
+        return
+      end
+      local cur = vim.api.nvim_get_current_win()
+      if cur == win or vim.api.nvim_win_get_config(cur).relative ~= "" or vim.fn.getcmdwintype() ~= "" then
+        return
+      end
+      pcall(vim.api.nvim_set_current_win, win)
+    end)
+  end
+  vim.api.nvim_create_autocmd({ "WinLeave", "WinEnter" }, { group = group, callback = pull_back })
+  local function teardown()
+    pcall(vim.api.nvim_del_augroup_by_id, group)
+    if current and current.win == win then
+      current = nil
+    end
+  end
+  vim.api.nvim_create_autocmd("WinClosed", { pattern = tostring(win), once = true, callback = teardown })
+  vim.api.nvim_create_autocmd("BufWipeout", { buffer = buf, once = true, callback = teardown })
+end
+
+--- Move focus back to the open list.
+--- @return integer|nil win nil when no list is open
+function M.focus_list()
+  if current and vim.api.nvim_win_is_valid(current.win) then
+    vim.api.nvim_set_current_win(current.win)
+    return current.win
+  end
+  current = nil
+  return nil
+end
+
+--- Close the open list from anywhere.
+--- @return boolean closed false when none was open
+function M.close_list()
+  if current and vim.api.nvim_win_is_valid(current.win) then
+    vim.api.nvim_win_close(current.win, true)
+    current = nil
+    return true
+  end
+  current = nil
+  return false
+end
+
 --- @param r KeymapHelperRender
 --- @param max_width integer
 local function rect_for(r, max_width)
@@ -38,7 +102,9 @@ function M.open_list(state, view, opts)
     border = "rounded",
     filetype = "keymap-helper",
     winhl = "EndOfBuffer:",
-    wo = { cursorline = true },
+    -- winfixbuf makes :buffer in the list window an error instead of
+    -- swapping the list's buffer out from under it.
+    wo = { cursorline = true, winfixbuf = true },
   }
   local win, buf = f.win, f.buf
 
@@ -104,12 +170,12 @@ function M.open_list(state, view, opts)
 
   for _, key in ipairs(A.quit.keys) do
     vim.keymap.set("n", key, function()
-      if vim.api.nvim_win_is_valid(win) then
-        vim.api.nvim_win_close(win, true)
-      end
+      M.close_list()
     end, { buffer = buf, nowait = true, silent = true, desc = A.quit.desc })
   end
 
+  current = { win = win, buf = buf }
+  make_modal(win, buf)
   return win, buf
 end
 

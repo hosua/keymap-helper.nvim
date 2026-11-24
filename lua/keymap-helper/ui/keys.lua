@@ -15,7 +15,7 @@ M.ACTIONS = {
   close = { keys = { "h" }, label = "close section", desc = "close section" },
   open_all = { keys = { "zR" }, label = "open all", desc = "open all sections" },
   close_all = { keys = { "zM" }, label = "close all", desc = "close all sections" },
-  quit = { keys = { "q", "<Esc>" }, label = "close", desc = "close keymap list" },
+  quit = { keys = { "q" }, label = "close", desc = "close keymap list" },
 }
 
 -- Footer order; the first key of each action is the one shown.
