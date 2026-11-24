@@ -26,7 +26,7 @@ export const NORMAL: LegendItem[] = [
   ["x", "delete shadowed"],
   ["P", "swap winner"],
   ["D", "removed defs"],
-  ["i", "keep_headers"],
+  ["i", "preview import"],
   ["w", "save"],
   ["q", "quit"],
 ];
@@ -69,8 +69,8 @@ export const QUIT: LegendItem[] = [
 export const ANY_KEY: LegendItem[] = [["any key", "close"]];
 
 export const MISSING: LegendItem[] = [
-  ["y", "import, all Uncategorized"],
-  ["h", "import, keep headers"],
+  ["y", "import, keep categories"],
+  ["d", "import, all Uncategorized"],
   ["q", "quit"],
 ];
 

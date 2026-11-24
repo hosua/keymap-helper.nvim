@@ -388,7 +388,7 @@ export function topBar(s: State, w: number): Row {
   const dirty = isDirty(s);
   const right: Row = [];
   if (s.screen === "missing") right.push({ t: " no template ", fg: C.page, bg: C.warn, bold: true });
-  else if (s.preview) right.push({ t: " PREVIEW keep_headers ", fg: C.page, bg: C.warn, bold: true });
+  else if (s.preview) right.push({ t: " PREVIEW import ", fg: C.page, bg: C.warn, bold: true });
   else if (dirty) right.push({ t: ` ● ${plural(changeCount(summaryOf(s)), "change")} `, fg: C.page, bg: C.warn, bold: true });
   else right.push({ t: " saved ", fg: C.ok, bg: C.bar });
   if (s.screen === "main") {
@@ -539,7 +539,7 @@ export function popup(s: State, size: { w: number; h: number }): Popup | null {
       delete: " delete category ",
       quit: " unsaved changes ",
       save: " save ",
-      apply: " apply keep_headers import ",
+      apply: " apply import ",
       import: " import ",
       entry: " delete entry ",
     }[o.purpose];
@@ -571,11 +571,11 @@ export function missingRows(s: State, h: number, w: number): Row[] {
     lines.push([{ t: "" }]);
     lines.push([
       { t: " y", fg: C.ok, bold: true },
-      { t: "  import it, every entry starts as Uncategorized", fg: C.text },
+      { t: "  import it, keep its `-- [Name]` headers as categories", fg: C.text },
     ]);
     lines.push([
-      { t: " h", fg: C.ok, bold: true },
-      { t: "  import it, keep its box headers as categories", fg: C.text },
+      { t: " d", fg: C.ok, bold: true },
+      { t: "  import it, drop the headers: every entry starts as Uncategorized", fg: C.text },
     ]);
   } else {
     lines.push([{ t: ` ${i.target} does not exist either, so there is nothing to import.`, fg: C.error }]);

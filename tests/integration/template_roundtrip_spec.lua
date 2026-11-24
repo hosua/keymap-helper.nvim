@@ -109,6 +109,13 @@ describe("template round trip on a copy of a real mappings.lua", function()
     )
   end)
 
+  it("keep_headers = false through template.import means drop_headers", function()
+    local root = config_root()
+    assert(template.import { root = root, keep_headers = false })
+    local tpl = assert(template.load(root .. "/lua/mappings.template.json"))
+    eq(1, #tpl.categories)
+  end)
+
   it("drop_headers collapses everything into Uncategorized", function()
     local root = config_root()
     assert(template.import { root = root, drop_headers = true })

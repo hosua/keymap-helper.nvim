@@ -271,8 +271,8 @@ The UI never edits a Lua file. It reads and writes the template through
 `scripts/kh-template` and generates `lua/mappings.lua` with `scripts/kh-generate`, so the
 backup, validation and generation rules exist once, in Lua. From inside Neovim,
 `:KeymapHelper edit` opens the same UI in a floating terminal (see below). With no template yet it offers
-to import your mappings file first: `y` imports everything as Uncategorized, `h` keeps the
-file's headers as categories (what `:KeymapHelper import` does by default).
+to import your mappings file first: `y` imports with the file's `-- [Name]` headers kept as categories (what
+`:KeymapHelper import` does by default), `d` drops the headers so every entry starts as Uncategorized.
 
 <div align="center" markdown="1">
 
@@ -311,7 +311,7 @@ dimmed. They can be moved but not edited, and moving one changes when it runs.
 | `x` | On a shadowed duplicate: delete that entry, after a confirm |
 | `P` | On a duplicate: swap precedence, so the other entry wins |
 | `D` | List the defaults your template removes |
-| `i` | Preview what `kh-import` would build with the headers kept; `<CR>` applies it after a confirm, `i` leaves |
+| `i` | Preview what `kh-import` would build; `<CR>` applies it after a confirm, `i` leaves |
 | `w` | Save |
 | `q`, `<C-c>` | Quit; with unsaved changes it asks |
 

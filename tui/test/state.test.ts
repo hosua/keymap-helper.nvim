@@ -240,7 +240,7 @@ describe("save and quit", () => {
   });
 });
 
-describe("keep_headers preview", () => {
+describe("import preview", () => {
   const preview = () => {
     const d = doc([map("p", "p", "keys"), map("q", "q", "keys")], ["keys"]);
     return { ...loaded(d), status: "preview" as const };
@@ -256,7 +256,7 @@ describe("keep_headers preview", () => {
     expect(edit.fx).toEqual([]);
     expect(press(shown, "i").s.preview).toBeNull();
   });
-  test("enter asks, y imports with keep_headers, and the unsaved edits are named in the question", () => {
+  test("enter asks, y imports with the categories kept, and the unsaved edits are named in the question", () => {
     const edited = press(start(six()), "l", "m", "return").s;
     const [shown] = update(edited, { type: "previewed", loaded: preview() });
     const asked = press(shown, "return");
@@ -284,8 +284,9 @@ describe("no template yet", () => {
       SIZE,
     );
   test("y imports as Uncategorized, h keeps the headers, q quits", () => {
-    expect(press(missing(true), "y").fx).toEqual([{ type: "import", keepHeaders: false }]);
-    expect(press(missing(true), "h").fx).toEqual([{ type: "import", keepHeaders: true }]);
+    expect(press(missing(true), "y").fx).toEqual([{ type: "import", keepHeaders: true }]);
+    expect(press(missing(true), "d").fx).toEqual([{ type: "import", keepHeaders: false }]);
+    expect(press(missing(true), "h").fx).toEqual([]);
     expect(press(missing(true), "q").fx).toEqual([{ type: "quit" }]);
   });
   test("with no mappings file there is nothing to import", () => {

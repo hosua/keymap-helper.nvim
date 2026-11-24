@@ -115,7 +115,7 @@ describe.each(sizes)("frame at %ix%i", (w, h) => {
       "reorder entry",
       "reorder category",
       "undo, redo",
-      "keep_headers",
+      "preview import",
       "save",
       "quit",
       "search",

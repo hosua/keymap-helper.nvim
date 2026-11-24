@@ -115,7 +115,7 @@ describe("import, categorize, save, generate", () => {
     expect(await keymaps(join(root, "lua/mappings.lua"))).toEqual(before);
   });
 
-  test("the keep_headers preview reads the file and writes nothing", async () => {
+  test("the import preview reads the file and writes nothing", async () => {
     const root = newRoot("b");
     const bridge = createBridge({ root, env });
     await bridge.importTemplate(false);

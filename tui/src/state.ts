@@ -278,7 +278,7 @@ function openPicker(s: State): [State, Effect[]] {
 
 function readOnly(s: State): State | null {
   if (!s.preview) return null;
-  return withUI(s, { message: note("the keep_headers preview is read-only: enter applies it, i leaves it", "warn") });
+  return withUI(s, { message: note("the import preview is read-only: enter applies it, i leaves it", "warn") });
 }
 
 function moveCursor(s: State, delta: number): State {
@@ -536,8 +536,8 @@ function handleNormal(s: State, key: string): [State, Effect[]] {
     case "N":
       return [nextMatch(cur, -1), []];
     case "i":
-      if (s.preview) return [withUI({ ...cur, preview: null }, { message: note("left the keep_headers preview") }), []];
-      return [withUI(cur, { message: note("reading the file with keep_headers...") }), [{ type: "preview", keepHeaders: true }]];
+      if (s.preview) return [withUI({ ...cur, preview: null }, { message: note("left the import preview") }), []];
+      return [withUI(cur, { message: note("reading the file...") }), [{ type: "preview", keepHeaders: true }]];
     case "w":
       return startSave(cur);
     case "q":
@@ -799,8 +799,8 @@ function handlePicker(s: State, key: string, o: Extract<Overlay, { kind: "picker
 function handleMissing(s: State, key: string): [State, Effect[]] {
   if (key === "q" || key === "escape" || key === "C-c") return [{ ...s, quit: true }, [{ type: "quit" }]];
   if (!s.sourceExists) return [s, []];
-  if (key === "y" || key === "h") {
-    return [{ ...s, busy: true, ui: { ...s.ui, message: note("importing...") } }, [{ type: "import", keepHeaders: key === "h" }]];
+  if (key === "y" || key === "d") {
+    return [{ ...s, busy: true, ui: { ...s.ui, message: note("importing...") } }, [{ type: "import", keepHeaders: key === "y" }]];
   }
   return [s, []];
 }
@@ -872,7 +872,7 @@ export function update(s: State, ev: Event): [State, Effect[]] {
             entIdx: 0,
             focus: "cats",
             anchor: null,
-            message: note(`preview: keep_headers would make ${plural(n, "category", "categories")}. enter applies it, i leaves it`, "warn"),
+            message: note(`preview: the import would make ${plural(n, "category", "categories")}. enter applies it, i leaves it`, "warn"),
           },
         ),
         [],

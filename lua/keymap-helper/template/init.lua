@@ -19,6 +19,7 @@ local M = {}
 --- @field target string|nil generated file (default the template's `target`, else config `template.target`)
 --- @field backups boolean|nil default config `template.backups`
 --- @field drop_headers boolean|nil import: ignore the file's category headers (default: they become categories)
+--- @field keep_headers boolean|nil import: legacy, `false` means `drop_headers`
 --- @field confirm (fun(message: string): boolean)|nil asked before a risky overwrite; absent means "no"
 --- @field now integer|nil epoch seconds, for tests
 --- @field timeout number|nil analyze: seconds to wait for the scratch nvim
@@ -124,6 +125,7 @@ local function parse_source(p, opts, source, disk)
   local cfg = require("keymap-helper.config").get()
   return import.parse(generate.strip_header(disk), {
     drop_headers = opts.drop_headers,
+    keep_headers = opts.keep_headers,
     map_functions = cfg.map_functions,
     header_pattern = cfg.header_pattern,
     target = vim.startswith(source, p.root .. "/") and source:sub(#p.root + 2) or source,

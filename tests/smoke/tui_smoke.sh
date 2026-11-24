@@ -24,8 +24,9 @@ chk() { "$@" || fail=1; }
 smoke_start 120 36 "${env_xdg[@]}" bun tui/src/index.tsx --root "$cfg"
 sleep 2
 chk smoke_expect 'There is no keymap template yet'
-chk smoke_expect 'import it, every entry starts as Uncategorized'
-smoke_keys y
+chk smoke_expect 'import it, keep its'
+chk smoke_expect 'drop the headers: every entry starts as Uncategorized'
+smoke_keys d
 sleep 1
 chk smoke_expect '! Uncategorized +[0-9]+'
 chk smoke_expect 'imported [0-9]+ maps and [0-9]+ raw blocks'
