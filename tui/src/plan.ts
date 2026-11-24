@@ -3,8 +3,11 @@
 // from with the one it holds now.
 import type { Doc, SavePlan } from "./types.ts";
 
-export function toPlan(doc: Doc): SavePlan {
+export function toPlan(doc: Doc, base?: Doc): SavePlan {
+  const kept = new Set(doc.entries.map((e) => e.id));
+  const gone = (base?.entries ?? []).filter((e) => !kept.has(e.id)).map((e) => e.id);
   return {
+    ...(gone.length ? { delete: gone } : {}),
     categories: doc.categories.map((c) => (c.isNew ? { id: c.id, title: c.title, new: true } : { id: c.id, title: c.title })),
     order: doc.entries.map((e) => ({ id: e.id, category: e.category })),
   };
@@ -19,6 +22,8 @@ export interface Summary {
   renamed: { from: string; to: string }[];
   deleted: string[];
   categoriesReordered: boolean;
+  /** Entries dropped from the template, as "n <leader>x" labels. */
+  entriesDeleted: string[];
 }
 
 /** Order of `items` after dropping everything not in `keep`. */
@@ -54,8 +59,18 @@ export function summarize(orig: Doc, cur: Doc): Summary {
     orig.categories.map((c) => c.id),
     cur.categories.map((c) => c.id),
   );
+  const kept = new Set(cur.entries.map((e) => e.id));
+  const entriesDeleted = orig.entries.filter((e) => !kept.has(e.id)).map((e) => `${(e.modes ?? []).join("")} ${e.lhs ?? e.id}`);
   return {
-    changed: moved > 0 || reorderedIn.length > 0 || added.length > 0 || deleted.length > 0 || renamed.length > 0 || categoriesReordered,
+    entriesDeleted,
+    changed:
+      entriesDeleted.length > 0 ||
+      moved > 0 ||
+      reorderedIn.length > 0 ||
+      added.length > 0 ||
+      deleted.length > 0 ||
+      renamed.length > 0 ||
+      categoriesReordered,
     moved,
     reorderedIn,
     added,
@@ -73,6 +88,7 @@ export function describe(s: Summary): string[] {
   if (s.moved) out.push(`moved ${plural(s.moved, "entry", "entries")}`);
   if (s.added.length) out.push(`new ${plural(s.added.length, "category", "categories")}: ${s.added.join(", ")}`);
   if (s.renamed.length) out.push(`renamed: ${s.renamed.map((r) => `${r.from} -> ${r.to}`).join(", ")}`);
+  if (s.entriesDeleted.length) out.push(`deleted ${plural(s.entriesDeleted.length, "entry", "entries")}: ${s.entriesDeleted.join(", ")}`);
   if (s.deleted.length) out.push(`deleted ${plural(s.deleted.length, "category", "categories")}: ${s.deleted.join(", ")}`);
   if (s.reorderedIn.length) out.push(`reordered entries in: ${s.reorderedIn.join(", ")}`);
   if (s.categoriesReordered) out.push("reordered categories");
@@ -80,5 +96,13 @@ export function describe(s: Summary): string[] {
 }
 
 export function changeCount(s: Summary): number {
-  return s.moved + s.added.length + s.renamed.length + s.deleted.length + s.reorderedIn.length + (s.categoriesReordered ? 1 : 0);
+  return (
+    s.entriesDeleted.length +
+    s.moved +
+    s.added.length +
+    s.renamed.length +
+    s.deleted.length +
+    s.reorderedIn.length +
+    (s.categoriesReordered ? 1 : 0)
+  );
 }

@@ -1,5 +1,5 @@
 import { type Effect, init, type State, update } from "../src/state.ts";
-import type { Doc, Entry, Loaded } from "../src/types.ts";
+import type { Doc, Entry, Loaded, Snapshot } from "../src/types.ts";
 
 export const SIZE = { w: 100, h: 30 };
 
@@ -56,3 +56,39 @@ export function press(s: State, ...keys: string[]): { s: State; fx: Effect[] } {
 export const typed = (text: string) => [...text].map((c) => (c === " " ? "space" : c));
 
 export const ids = (s: State, cat: string) => s.h.present.entries.filter((e) => e.category === cat).map((e) => e.id);
+
+/** A replay snapshot: NvChad's <leader>h is overridden by entry `h1`, <leader>v was deleted by the template. */
+export function snapshot(extra: Partial<Snapshot> = {}): Snapshot {
+  return {
+    status: "ok",
+    source: "replay",
+    leader: " ",
+    keys: [
+      {
+        mode: "n",
+        lhs: "<Space>h",
+        defs: [
+          { source: "default:nvchad", desc: "Telescope help_tags" },
+          { source: "template:h1", desc: "telescope help page" },
+        ],
+        removed: [],
+      },
+      { mode: "n", lhs: "<Space>v", defs: [], removed: [{ source: "default:nvchad", desc: "terminal vertical", by: "template:raw" }] },
+    ],
+    ...extra,
+  };
+}
+
+/** The conflict document: h1 overrides a default, x1 and x2 both bind <leader>x (x2 runs later and wins). */
+export function conflictDoc(): Doc {
+  return doc(
+    [
+      map("h1", "<leader>h", "nav", { opts: { desc: "telescope help page" } }),
+      map("x1", "<leader>x", "nav", { opts: { desc: "first x" } }),
+      map("q1", "<leader>q", "nav"),
+      map("x2", "<space>x", "git", { opts: { desc: "second x" } }),
+      map("z1", "<leader>z", "git"),
+    ],
+    ["nav", "git"],
+  );
+}

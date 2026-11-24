@@ -54,6 +54,29 @@ describe("template edit: apply_plan", function()
     eq("keep", out.entries[2]._note)
   end)
 
+  it("drops the map entries named in `delete`", function()
+    local p = plan { delete = { "e3" } }
+    table.remove(p.order, 3)
+    local out = assert(edit.apply_plan(sample(), p))
+    eq(
+      { "e1", "e2" },
+      vim.tbl_map(function(e)
+        return e.id
+      end, out.entries)
+    )
+  end)
+
+  it("refuses to delete raw entries, unknown ids, or an entry it also places", function()
+    local p = plan { delete = { "e2" } }
+    table.remove(p.order, 2)
+    local _, err = edit.apply_plan(sample(), p)
+    ok(err:find("raw Lua", 1, true), err)
+    _, err = edit.apply_plan(sample(), plan { delete = { "nope" } })
+    ok(err:find("not in the template", 1, true), err)
+    _, err = edit.apply_plan(sample(), plan { delete = { "e3" } })
+    ok(err:find("both deleted and placed", 1, true), err)
+  end)
+
   it("renames a category and keeps its subtitle", function()
     local p = plan()
     p.categories[2].title = "Moving"

@@ -52,5 +52,5 @@ const MODE_COLORS: Record<string, string> = {
 
 export const modeColor = (m: string): string => MODE_COLORS[m] ?? C.grey;
 
-export const levelColor = (l: "info" | "ok" | "warn" | "error"): string =>
-  l === "ok" ? C.ok : l === "warn" ? C.warn : l === "error" ? C.error : C.info;
+export const levelColor = (l: "info" | "ok" | "warn" | "error" | "dim"): string =>
+  l === "ok" ? C.ok : l === "warn" ? C.warn : l === "error" ? C.error : l === "dim" ? C.dim : C.info;

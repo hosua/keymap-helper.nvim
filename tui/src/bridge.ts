@@ -2,8 +2,10 @@
 // plugin (scripts/kh-template, kh-import, kh-generate) under `nvim -l` and
 // reads their JSON. The TUI never opens a lua or template file itself, so the
 // rules for reading, validating, backing up and generating exist once, in Lua.
+
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import type { Doc, Info, Loaded, Missing, SavePlan, SaveResult } from "./types.ts";
+import type { Doc, Info, Loaded, Missing, SavePlan, SaveResult, Snapshot } from "./types.ts";
 
 export interface Bridge {
   show(): Promise<Loaded | Missing>;
@@ -12,6 +14,8 @@ export interface Bridge {
   save(plan: SavePlan): Promise<SaveResult>;
   /** Import the mappings file into the template (the caller already asked the user). */
   importTemplate(keepHeaders: boolean): Promise<string>;
+  /** Who defines each key: starts the user's config in a scratch nvim (seconds, not milliseconds). */
+  analyze(): Promise<Snapshot>;
 }
 
 export interface BridgeOptions {
@@ -22,6 +26,15 @@ export interface BridgeOptions {
   env?: Record<string, string>;
   /** Plugin checkout holding scripts/; default: two levels above this file. */
   pluginRoot?: string;
+  /** Seconds the analysis may take; the Lua side kills the scratch nvim after this. */
+  timeout?: number;
+}
+
+/** Read a snapshot written by `:KeymapHelper edit`. */
+export function readSnapshot(path: string): Snapshot {
+  const snap = JSON.parse(readFileSync(path, "utf8")) as Snapshot;
+  if (!Array.isArray(snap.keys)) throw new Error(`${path} is not an analysis snapshot`);
+  return snap;
 }
 
 export const PLUGIN_ROOT = resolve(import.meta.dir, "../..");
@@ -98,6 +111,10 @@ export function createBridge(opts: BridgeOptions = {}): Bridge {
       } catch (e) {
         return { ...result, target: opts.target ?? "", generateError: e instanceof Error ? e.message : String(e) };
       }
+    },
+    async analyze() {
+      const args = ["analyze", ...common(opts), ...(opts.timeout ? [`--timeout=${opts.timeout}`] : [])];
+      return parse<Snapshot>(await run("kh-template", args, opts), "kh-template analyze");
     },
     async importTemplate(keepHeaders) {
       const args = ["--json", "--yes", ...common(opts), ...(keepHeaders ? ["--keep-headers"] : [])];

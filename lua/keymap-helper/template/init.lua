@@ -21,6 +21,7 @@ local M = {}
 --- @field keep_headers boolean|nil import: keep the file's box headers as categories
 --- @field confirm (fun(message: string): boolean)|nil asked before a risky overwrite; absent means "no"
 --- @field now integer|nil epoch seconds, for tests
+--- @field timeout number|nil analyze: seconds to wait for the scratch nvim
 
 local function absolute(root, p)
   if vim.startswith(p, "/") or vim.startswith(p, "~") then
@@ -278,6 +279,29 @@ function M.generate(opts)
     return nil, werr
   end
   return { status = res.changed and "written" or "unchanged", target = target, backup = res.backup }
+end
+
+--- Who defines each key, by running your real config in a scratch nvim and
+--- the generated file on top of it (see analyze.lua). Writes nothing.
+--- @param opts KeymapHelperTemplateOpts|nil
+--- @return table|nil result, string|nil err
+function M.analyze(opts)
+  opts = opts or {}
+  local p = M.paths(opts)
+  local tpl, err = M.load(p.template)
+  if not tpl then
+    return nil, err
+  end
+  local plugin_root =
+    vim.fs.dirname(vim.fs.dirname(vim.fs.dirname(vim.fs.dirname(debug.getinfo(1, "S").source:sub(2)))))
+  return require("keymap-helper.template.analyze").run {
+    tpl = tpl,
+    root = p.root,
+    target = target_of(p, tpl),
+    template_name = p.template_name,
+    timeout = opts.timeout,
+    plugin_root = plugin_root,
+  }
 end
 
 --- Whether the file on disk is what the template generates.

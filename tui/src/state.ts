@@ -1,6 +1,8 @@
 // The whole app as one pure function: update(state, event) gives the next
 // state and the side effects to run (save, preview, import, quit). The views
 // only draw the state; the bridge runs the effects and reports back as events.
+
+import { type Conflicts, conflictsOf, labelOf } from "./conflicts.ts";
 import {
   addCategory,
   categoryOf,
@@ -10,6 +12,8 @@ import {
   moveCategory,
   moveEntries,
   normalize,
+  placeNear,
+  removeEntries,
   renameCategory,
   reorderEntries,
 } from "./doc.ts";
@@ -26,6 +30,7 @@ import {
   type Missing,
   type SavePlan,
   type SaveResult,
+  type Snapshot,
   UNCATEGORIZED,
 } from "./types.ts";
 
@@ -36,13 +41,20 @@ export type PickItem = { kind: "cat"; id: string; title: string } | { kind: "new
 export type Overlay =
   | { kind: "picker"; query: string; sel: number }
   | { kind: "input"; purpose: "newcat" | "newcat-move" | "rename" | "search"; label: string; text: string }
-  | { kind: "confirm"; purpose: "delete" | "quit" | "save" | "apply" | "import"; level: Level; lines: string[]; target?: string }
+  | { kind: "confirm"; purpose: "delete" | "quit" | "save" | "apply" | "import" | "entry"; level: Level; lines: string[]; target?: string }
   | { kind: "result"; level: Level; lines: string[] };
 
 export interface Message {
   text: string;
   level: Level;
 }
+
+/** The keymap analysis: idle until the screen is ready, then running, then done or failed. */
+export type Analysis =
+  | { status: "idle" }
+  | { status: "running"; frame: number }
+  | { status: "done"; snapshot: Snapshot }
+  | { status: "failed"; message: string };
 
 export interface UI {
   catIdx: number;
@@ -56,6 +68,8 @@ export interface UI {
   /** First key of a two-key command (g). */
   pending: string;
   search: string;
+  /** Show only entries with a duplicate or an override. */
+  filter: boolean;
   /** Palette slot picked with C, by category id. */
   colors: Readonly<Record<string, number>>;
   size: Size;
@@ -70,12 +84,14 @@ export interface State {
   base: Doc;
   h: H.History;
   preview: { doc: Doc; calls: Readonly<Record<string, string>> } | null;
+  analysis: Analysis;
   ui: UI;
   busy: boolean;
   quit: boolean;
 }
 
 export type Effect =
+  | { type: "analyze" }
   | { type: "save"; plan: SavePlan }
   | { type: "preview"; keepHeaders: boolean }
   | { type: "import"; keepHeaders: boolean }
@@ -84,6 +100,10 @@ export type Effect =
 
 export type Event =
   | { type: "key"; key: string }
+  | { type: "analysis-start" }
+  | { type: "analyzed"; snapshot: Snapshot }
+  | { type: "analysis-failed"; message: string }
+  | { type: "tick" }
   | { type: "resize"; size: Size }
   | { type: "select"; pane: Focus; index: number }
   | { type: "scroll"; delta: number }
@@ -107,6 +127,7 @@ function freshUI(size: Size): UI {
     message: null,
     pending: "",
     search: "",
+    filter: false,
     colors: {},
     size,
   };
@@ -123,6 +144,7 @@ export function init(loaded: Loaded | Missing, size: Size): State {
       base: emptyDoc,
       h: H.start(emptyDoc),
       preview: null,
+      analysis: { status: "idle" },
       ui: freshUI(size),
       busy: false,
       quit: false,
@@ -141,6 +163,7 @@ export function init(loaded: Loaded | Missing, size: Size): State {
     base: doc,
     h: H.start(doc),
     preview: null,
+    analysis: { status: "idle" },
     ui: { ...ui, message: note },
     busy: false,
     quit: false,
@@ -152,9 +175,15 @@ export function init(loaded: Loaded | Missing, size: Size): State {
 export const docOf = (s: State): Doc => s.preview?.doc ?? s.h.present;
 export const callsOf = (s: State): Readonly<Record<string, string>> => s.preview?.calls ?? s.calls;
 export const categoryAt = (s: State) => docOf(s).categories[s.ui.catIdx];
+export const snapshotOf = (s: State): Snapshot | null => (s.analysis.status === "done" ? s.analysis.snapshot : null);
+export const conflictsFor = (s: State): Conflicts => conflictsOf(docOf(s), snapshotOf(s));
 export const entriesIn = (s: State): Entry[] => {
   const c = categoryAt(s);
-  return c ? entriesOf(docOf(s), c.id) : [];
+  if (!c) return [];
+  const all = entriesOf(docOf(s), c.id);
+  if (!s.ui.filter) return all;
+  const hit = new Set(conflictsFor(s).order);
+  return all.filter((e) => hit.has(e.id));
 };
 export const entryAt = (s: State): Entry | undefined => entriesIn(s)[s.ui.entIdx];
 export const summaryOf = (s: State) => summarize(s.base, s.h.present);
@@ -328,12 +357,139 @@ function startQuit(s: State): [State, Effect[]] {
   return [withUI(s, { overlay: { kind: "confirm", purpose: "quit", level: "error", lines } }), []];
 }
 
+// ---- conflicts -----------------------------------------------------------
+
+/** Put the cursor on an entry, whatever category it is in. */
+function focusEntry(s: State, id: string): State {
+  const doc = docOf(s);
+  const e = doc.entries.find((x) => x.id === id);
+  if (!e) return s;
+  const catIdx = Math.max(
+    0,
+    doc.categories.findIndex((c) => c.id === e.category),
+  );
+  const at = withUI(s, { catIdx, focus: "entries", anchor: null });
+  const entIdx = Math.max(
+    0,
+    entriesIn(at).findIndex((x) => x.id === id),
+  );
+  return withUI(at, { entIdx });
+}
+
+const where = (s: State, id: string): string => {
+  const e = docOf(s).entries.find((x) => x.id === id);
+  return e ? `${e.category}/${e.id}` : id;
+};
+
+function jumpConflict(s: State, dir: 1 | -1): State {
+  const c = conflictsFor(s);
+  if (c.order.length === 0) return withUI(s, { message: note(analysisHint(s, "no conflicts"), "warn") });
+  const doc = docOf(s);
+  const pos = new Map(doc.entries.map((e, i) => [e.id, i]));
+  const here = entryAt(s);
+  const at = here && s.ui.focus === "entries" ? (pos.get(here.id) ?? -1) : -1;
+  const ordered = c.order.map((id) => ({ id, i: pos.get(id) ?? 0 }));
+  const next =
+    dir === 1
+      ? (ordered.find((o) => o.i > at) ?? ordered[0])
+      : ([...ordered].reverse().find((o) => o.i < at) ?? ordered[ordered.length - 1]);
+  if (!next) return s;
+  const n = c.order.indexOf(next.id) + 1;
+  return withUI(focusEntry(s, next.id), { message: note(`conflict ${n}/${c.order.length}: ${where(s, next.id)}`) });
+}
+
+function analysisHint(s: State, none: string): string {
+  const a = s.analysis;
+  if (a.status === "running" || a.status === "idle") return `${none} yet: still analysing keymaps`;
+  if (a.status === "failed") return `${none} found: the analysis failed (${a.message.split("\n")[0]})`;
+  return none;
+}
+
+function toggleFilter(s: State): State {
+  const filter = !s.ui.filter;
+  const n = conflictsFor(s).order.length;
+  const msg = filter ? (n ? `showing the ${n} conflicted entries; ! shows all` : analysisHint(s, "no conflicts")) : "showing all entries";
+  return settle(withUI(s, { filter, entIdx: 0, anchor: null, message: note(msg, filter && !n ? "warn" : "info") }));
+}
+
+/** The duplicate group of the entry under the cursor, or a message saying why there is none. */
+function dupOf(s: State): { id: string; members: string[]; winner: string } | string {
+  const e = entryAt(s);
+  if (!e || s.ui.focus !== "entries") return "press l to focus the entries pane first";
+  const d = conflictsFor(s).byEntry.get(e.id)?.dups[0];
+  if (!d) return "this entry has no duplicate";
+  return { id: e.id, members: d.members, winner: d.winner };
+}
+
+function otherEntry(s: State): State {
+  const d = dupOf(s);
+  if (typeof d === "string") return withUI(s, { message: note(d, "warn") });
+  const i = d.members.indexOf(d.id);
+  const other = d.members[(i + 1) % d.members.length] as string;
+  return withUI(focusEntry(s, other), { message: note(`the other entry on this key: ${where(s, other)}`) });
+}
+
+function startDeleteEntry(s: State): [State, Effect[]] {
+  const ro = readOnly(s);
+  if (ro) return [ro, []];
+  const d = dupOf(s);
+  if (typeof d === "string") return [withUI(s, { message: note(d, "warn") }), []];
+  const e = entryAt(s);
+  if (d.winner === d.id) {
+    return [withUI(s, { message: note("x deletes the shadowed entry: press o to jump to it, or P to let the other one win", "warn") }), []];
+  }
+  const lines = [
+    `delete ${(e?.modes ?? []).join("")} ${e?.lhs ?? d.id} (${where(s, d.id)})?`,
+    `it never runs: ${where(s, d.winner)} binds the same key later`,
+    "the entry leaves the template when you save, the old template is kept as a .bak",
+  ];
+  return [withUI(s, { overlay: { kind: "confirm", purpose: "entry", level: "error", lines, target: d.id } }), []];
+}
+
+function swapPrecedence(s: State): State {
+  const ro = readOnly(s);
+  if (ro) return ro;
+  const d = dupOf(s);
+  if (typeof d === "string") return withUI(s, { message: note(d, "warn") });
+  const doc = s.h.present;
+  const others = d.members.filter((m) => m !== d.id);
+  const mine = doc.entries.find((x) => x.id === d.id);
+  let next: Doc;
+  let text: string;
+  if (d.winner === d.id) {
+    const anchor = others[others.length - 1] as string;
+    next = placeNear(doc, d.id, anchor, "before");
+    text = `${where(s, d.id)} now runs before ${where(s, anchor)}, which wins`;
+  } else {
+    next = placeNear(doc, d.id, d.winner, "after");
+    text = `${where(s, d.id)} now runs after ${where(s, d.winner)} and wins`;
+  }
+  const target = next.entries.find((x) => x.id === d.id);
+  if (target && mine && target.category !== mine.category) {
+    text += `; it moved to ${next.categories.find((c) => c.id === target.category)?.title ?? target.category}`;
+  }
+  if (next === doc) return withUI(s, { message: note("already in that order", "warn") });
+  return edit(s, next, note(text, "ok"), { cat: target?.category, entry: d.id });
+}
+
+function showRemoved(s: State): State {
+  const r = conflictsFor(s).removed;
+  if (r.length === 0) return withUI(s, { message: note(analysisHint(s, "your template removes no defaults"), "info") });
+  const lines = [`${plural(r.length, "default")} removed by the template (shown, not editable):`];
+  for (const x of r) lines.push(`  ${x.mode} ${x.lhs}  ${labelOf(x.def)}  (${x.def.source})`);
+  return withUI(s, { overlay: { kind: "result", level: "dim", lines } });
+}
+
 function handleNormal(s: State, key: string): [State, Effect[]] {
   const ui = s.ui;
   const pending = ui.pending;
   const cur = pending ? withUI(s, { pending: "" }) : s;
   if (pending === "g") {
     if (key === "g") return [jump(cur, "first"), []];
+    return [cur, []];
+  }
+  if (pending === "]" || pending === "[") {
+    if (key === "c") return [jumpConflict(cur, pending === "]" ? 1 : -1), []];
     return [cur, []];
   }
   const half = Math.max(1, Math.floor(layout(ui.size).listRows / 2));
@@ -349,6 +505,13 @@ function handleNormal(s: State, key: string): [State, Effect[]] {
       return [withUI(cur, { pending: "g" }), []];
     case "G":
       return [jump(cur, "last"), []];
+    case "]":
+    case "[":
+      return [withUI(cur, { pending: key }), []];
+    case "!":
+      return [toggleFilter(cur), []];
+    case "D":
+      return [showRemoved(cur), []];
     case "C-d":
     case "pagedown":
       return [moveCursor(cur, half), []];
@@ -430,6 +593,12 @@ function handleNormal(s: State, key: string): [State, Effect[]] {
         const ro = readOnly(cur);
         return ro ? [ro, []] : openPicker(cur);
       }
+      case "o":
+        return [otherEntry(cur), []];
+      case "x":
+        return startDeleteEntry(cur);
+      case "P":
+        return [swapPrecedence(cur), []];
       case "J":
       case "K": {
         const ro = readOnly(cur);
@@ -518,11 +687,18 @@ function handleConfirm(s: State, key: string, o: Extract<Overlay, { kind: "confi
       return [edit(close, doc, note("category deleted; its entries are in Uncategorized", "warn"), { cat: UNCATEGORIZED }), []];
     }
     case "save":
-      return [{ ...close, busy: true, ui: { ...close.ui, message: note("saving...") } }, [{ type: "save", plan: toPlan(s.h.present) }]];
+      return [
+        { ...close, busy: true, ui: { ...close.ui, message: note("saving...") } },
+        [{ type: "save", plan: toPlan(s.h.present, s.base) }],
+      ];
     case "apply":
       return [{ ...close, busy: true, ui: { ...close.ui, message: note("importing...") } }, [{ type: "import", keepHeaders: true }]];
     case "import":
       return [{ ...close, busy: true, ui: { ...close.ui, message: note("importing...") } }, [{ type: "import", keepHeaders: false }]];
+    case "entry": {
+      const doc = removeEntries(s.h.present, new Set([o.target ?? ""]));
+      return [edit(close, doc, note("entry deleted; it leaves the template when you save", "warn")), []];
+    }
   }
 }
 
@@ -642,9 +818,37 @@ export function update(s: State, ev: Event): [State, Effect[]] {
         [],
       ];
     }
+    case "analysis-start":
+      if (s.analysis.status !== "idle" || s.screen !== "main") return [s, []];
+      return [{ ...s, analysis: { status: "running", frame: 0 } }, [{ type: "analyze" }]];
+    case "tick":
+      return s.analysis.status === "running" ? [{ ...s, analysis: { status: "running", frame: s.analysis.frame + 1 } }, []] : [s, []];
+    case "analyzed": {
+      const partial = ev.snapshot.status === "partial";
+      const warned = ev.snapshot.warnings?.[0];
+      const text = partial
+        ? `analysis incomplete: ${ev.snapshot.error ?? "the generated file stopped early"}`
+        : warned
+          ? `analysis incomplete: ${warned}`
+          : (ev.snapshot.note ?? null);
+      const message = s.ui.message ?? (text ? note(text, partial ? "warn" : "dim") : null);
+      return [settle(withUI({ ...s, analysis: { status: "done", snapshot: ev.snapshot } }, { message })), []];
+    }
+    case "analysis-failed": {
+      const first = ev.message.split("\n").find(Boolean) ?? "unknown error";
+      return [
+        withUI({ ...s, analysis: { status: "failed", message: ev.message } }, { message: note(`analysis failed: ${first}`, "dim") }),
+        [],
+      ];
+    }
     case "loaded": {
       const fresh = init(ev.loaded, s.ui.size);
-      return [{ ...fresh, ui: { ...fresh.ui, message: ev.note ?? fresh.ui.message, colors: s.ui.colors } }, []];
+      const next: State = {
+        ...fresh,
+        analysis: s.analysis,
+        ui: { ...fresh.ui, message: ev.note ?? fresh.ui.message, colors: s.ui.colors, filter: s.ui.filter },
+      };
+      return next.analysis.status === "idle" && next.screen === "main" ? update(next, { type: "analysis-start" }) : [next, []];
     }
     case "select": {
       if (s.busy || s.ui.overlay || s.screen !== "main") return [s, []];
@@ -697,7 +901,12 @@ export function update(s: State, ev: Event): [State, Effect[]] {
       const level: Level = ev.result.generateError ? "error" : "ok";
       const fresh = ev.loaded ? init(ev.loaded, s.ui.size) : { ...s, busy: false };
       return [
-        { ...fresh, busy: false, ui: { ...fresh.ui, overlay: { kind: "result", level, lines }, colors: s.ui.colors, message: null } },
+        {
+          ...fresh,
+          busy: false,
+          analysis: s.analysis,
+          ui: { ...fresh.ui, overlay: { kind: "result", level, lines }, colors: s.ui.colors, message: null, filter: s.ui.filter },
+        },
         [],
       ];
     }

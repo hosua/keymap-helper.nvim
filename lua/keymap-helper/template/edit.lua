@@ -8,6 +8,8 @@
 ---               `new` one carries a temporary id and gets its real id here
 ---   order       { id, category }[]      every entry id exactly once, in the
 ---               order to write them, with the (possibly temporary) category id
+---   delete      string[]?               ids of map entries to drop. They must not
+---               appear in `order`. Raw entries cannot be deleted here
 local generate = require "keymap-helper.template.generate"
 local schema = require "keymap-helper.template.schema"
 
@@ -106,10 +108,23 @@ function M.apply_plan(tpl, plan)
   end
   out.entries = {}
   local placed = {}
+  for _, id in ipairs(plan.delete or {}) do
+    local e = by_id[id]
+    if not e then
+      return nil, ("the plan deletes an entry that is not in the template: %s"):format(vim.inspect(id))
+    end
+    if e.kind ~= "map" then
+      return nil, ("entry %s is raw Lua and cannot be deleted from here"):format(id)
+    end
+    placed[id] = "deleted"
+  end
   for _, item in ipairs(plan.order) do
     local e = type(item) == "table" and by_id[item.id]
     if not e then
       return nil, ("the plan names an entry that is not in the template: %s"):format(vim.inspect(item and item.id))
+    end
+    if placed[item.id] == "deleted" then
+      return nil, ("entry %s is both deleted and placed in the plan"):format(item.id)
     end
     if placed[item.id] then
       return nil, ("entry %s is in the plan twice"):format(item.id)

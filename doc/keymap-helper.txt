@@ -29,6 +29,14 @@ COMMANDS                                              *keymap-helper-commands*
         file, nothing happens. When it does not, asks before replacing the
         template (the old one is saved). The bang skips the question.
 
+:KeymapHelper edit                                *keymap-helper-edit*
+        Open the terminal UI for the keymap template in a floating terminal.
+        Needs `bun` on your PATH and `bun install` run once in the plugin's tui/
+        directory. The UI marks duplicate keys (red: the later entry wins) and
+        keys that override a default such as NvChad's (yellow). When you save, a
+        notice asks you to restart Neovim; nothing is reloaded for you. Only
+        global maps count: buffer-local maps and lazy.nvim `keys` are ignored.
+
 :KeymapHelper generate[!] [check]                     *keymap-helper-generate*
         Write `template.target` from the template. The old file is copied to
         mappings_<YYYY_MM_DD_hh:mm:ss>.bak first (never overwritten; a same
@@ -37,7 +45,8 @@ COMMANDS                                              *keymap-helper-commands*
         question. With `check`, writes nothing and reports whether the file
         matches the template. To undo, copy the newest backup over the file.
 
-Scripts: scripts/kh-import and scripts/kh-generate run the same code under
+Scripts: scripts/kh-import, kh-generate and kh-template (`analyze` lists who
+defines each key) run the same code under
 `nvim -l` (see --help). `kh-generate --check` exits 1 when the file differs.
 scripts/kh-template prints the template as JSON (`show`, `preview`) and applies
 a category plan from stdin (`save`); the terminal UI in tui/ uses it. Start the

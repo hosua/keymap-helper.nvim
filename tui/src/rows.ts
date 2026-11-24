@@ -1,6 +1,7 @@
 // Rows of styled text for every part of the screen, built as plain data.
 // A row is a list of segments; the views turn them into <span>s, and the tests
 // read them as strings. Nothing here touches a renderer.
+import { type EntryConflict, labelOf, sourceName } from "./conflicts.ts";
 import { categoryOf } from "./doc.ts";
 import type { Layout } from "./layout.ts";
 import * as L from "./legend.ts";
@@ -10,6 +11,7 @@ import { changeCount } from "./plan.ts";
 import {
   callsOf,
   categoryAt,
+  conflictsFor,
   docOf,
   entriesIn,
   entryAt,
@@ -154,6 +156,23 @@ export function modeBadges(modes: string[] | undefined, bg?: string): Row {
   return row;
 }
 
+const planned = (s: State, id: string): string => {
+  const e = docOf(s).entries.find((x) => x.id === id);
+  return e ? `${e.category}/${e.id}` : id;
+};
+
+/** The short text that replaces the description of a conflicted entry in the list. */
+function chipOf(s: State, e: Entry, c: EntryConflict | undefined): { text: string; fg: string; level: "danger" | "warn" } | null {
+  const d = c?.dups[0];
+  if (c && d) {
+    const text = d.winner === e.id ? "! wins" : `! shadowed by ${planned(s, d.winner)}`;
+    return { text, fg: C.danger, level: "danger" };
+  }
+  const o = c?.overrides[0];
+  if (c && o) return { text: `~ ${labelOf(o.old)} -> ${descOf(e)}`, fg: C.warn, level: "warn" };
+  return null;
+}
+
 export function entryRows(s: State, l: Layout): Row[] {
   const list = entriesIn(s);
   const w = l.midW;
@@ -163,8 +182,12 @@ export function entryRows(s: State, l: Layout): Row[] {
   const lhsW = Math.max(8, Math.min(24, Math.floor(w * 0.36)));
   const rows: Row[] = [];
   if (list.length === 0) {
-    return [fit([{ t: " nothing here yet. Press m on entries in another category.", fg: C.dim, italic: true, bg: C.mid }], w, C.mid)];
+    const text = s.ui.filter
+      ? " no conflicted entries here. Press ! to show all."
+      : " nothing here yet. Press m on entries in another category.";
+    return [fit([{ t: text, fg: C.dim, italic: true, bg: C.mid }], w, C.mid)];
   }
+  const found = conflictsFor(s);
   for (let i = top; i < Math.min(list.length, top + l.listRows); i++) {
     const e = list[i] as Entry;
     const cursor = i === s.ui.entIdx;
@@ -194,15 +217,19 @@ export function entryRows(s: State, l: Layout): Row[] {
     const modes = modeBadges(e.modes, bg);
     const modeW = (e.modes ?? []).length;
     const rest = Math.max(0, w - 2 - 6 - lhsW - 1 - 5);
+    const chip = chipOf(s, e, found.byEntry.get(e.id));
+    const lhsColor = chip ? chip.fg : C.text;
     rows.push(
       fit(
         [
           ...head,
           ...modes,
           { t: " ".repeat(Math.max(1, 6 - modeW)), bg },
-          { t: pad(clip(e.lhs ?? "", lhsW), lhsW), fg: hit ? C.match : C.text, bold: true, underline: hit, bg },
+          { t: pad(clip(e.lhs ?? "", lhsW), lhsW), fg: hit ? C.match : lhsColor, bold: true, underline: hit, bg },
           { t: " ", bg },
-          { t: pad(clip(descOf(e), rest), rest), fg: C.grey, bg },
+          chip
+            ? { t: pad(clip(chip.text, rest), rest), fg: chip.fg, bold: chip.level === "danger", bg }
+            : { t: pad(clip(descOf(e), rest), rest), fg: C.grey, bg },
           { t: ` ${tag} `, fg: tagColor(tag), bg },
         ],
         w,
@@ -239,6 +266,35 @@ function optionList(o: Entry["opts"], raw = false): string[] {
   return Object.entries(o).map(([k, v]) =>
     v === true && !raw ? k : `${k}=${typeof v === "string" && !raw ? JSON.stringify(v) : String(v)}`,
   );
+}
+
+/** The conflict block of the details pane: duplicates in red, overrides in yellow, removed defaults dim. */
+function conflictRows(s: State, e: Entry, w: number): Row[] {
+  const c = conflictsFor(s).byEntry.get(e.id);
+  if (!c) return [];
+  const bg = C.right;
+  const out: Row[] = [];
+  const text = (t: string, fg: string, bold = false): Row[] => wrap(t, w - 2).map((x) => [{ t: ` ${x}`, fg, bold, bg }]);
+  for (const d of c.dups) {
+    out.push([{ t: ` DUPLICATE on ${d.mode} ${e.lhs ?? ""}`, fg: C.danger, bold: true, bg }]);
+    d.members.forEach((id, i) => {
+      const win = id === d.winner;
+      out.push([
+        { t: id === e.id ? " > " : "   ", fg: C.text, bold: true, bg },
+        { t: `${i + 1}. ${planned(s, id)}`, fg: id === e.id ? C.text : C.grey, bg },
+      ]);
+      out.push([{ t: win ? "     wins" : `     shadowed by ${planned(s, d.winner)}`, fg: win ? C.ok : C.danger, bold: win, bg }]);
+    });
+    out.push(...text("later in the file wins. o other, x delete shadowed, P swap", C.dim));
+  }
+  for (const o of c.overrides) {
+    out.push([{ t: ` OVERRIDES a default on ${o.mode}`, fg: C.warn, bold: true, bg }]);
+    out.push(...text(`${o.lhs}: ${labelOf(o.old)}`, C.grey));
+    out.push([{ t: `   from ${sourceName(o.old.source)}`, fg: C.dim, bg }]);
+    out.push(...text(`->  ${o.lhs}: ${descOf(e)}`, C.warn));
+  }
+  for (const r of c.removed) out.push(...text(`removed default: ${labelOf(r.def)} (${sourceName(r.def.source)})`, C.dim));
+  return out;
 }
 
 /** Details of the entry under the cursor. The last block is the exact generated Lua. */
@@ -316,6 +372,7 @@ export function detailRows(s: State, l: Layout): Row[] {
       ),
     );
   }
+  rows.push(...conflictRows(s, e, w));
   rows.push([{ t: " generated Lua", fg: C.dim, bg }]);
   const code = callsOf(s)[e.id] ?? "";
   const budget = Math.max(2, l.listRows - rows.length);
@@ -334,16 +391,29 @@ export function topBar(s: State, w: number): Row {
   else if (s.preview) right.push({ t: " PREVIEW keep_headers ", fg: C.page, bg: C.warn, bold: true });
   else if (dirty) right.push({ t: ` ● ${plural(changeCount(summaryOf(s)), "change")} `, fg: C.page, bg: C.warn, bold: true });
   else right.push({ t: " saved ", fg: C.ok, bg: C.bar });
-  const left: Row = [
-    { t: " keymap-helper ", fg: C.page, bg: C.info, bold: true },
-    { t: ` ${s.info.template_name}`, fg: C.text, bg: C.bar },
-    { t: ` -> ${relTo(s.info.root, s.info.target)}`, fg: C.grey, bg: C.bar },
-  ];
+  if (s.screen === "main") {
+    const c = conflictsFor(s);
+    const counts: Row = [];
+    if (c.duplicates) counts.push({ t: ` ${plural(c.duplicates, "duplicate")} `, fg: C.page, bg: C.danger, bold: true });
+    if (c.overrides) counts.push({ t: ` ${plural(c.overrides, "override")} `, fg: C.page, bg: C.warn, bold: true });
+    if (c.removed.length) counts.push({ t: ` ${c.removed.length} removed `, fg: C.dim, bg: C.bar });
+    if (s.analysis.status === "failed") counts.push({ t: " no analysis ", fg: C.dim, bg: C.bar });
+    right.unshift(...counts.flatMap((g, i) => (i ? [{ t: " ", bg: C.bar }, g] : [g])), ...(counts.length ? [{ t: " ", bg: C.bar }] : []));
+  }
   const rw = right.reduce((n, g) => n + width(g.t), 0);
+  const title: Seg = { t: " keymap-helper ", fg: C.page, bg: C.info, bold: true };
+  const room = Math.max(0, w - rw - 1 - width(title.t));
+  const name = ` ${s.info.template_name}`;
+  const target = ` -> ${relTo(s.info.root, s.info.target)}`;
+  const left: Row = [title];
+  if (width(name) + width(target) <= room) left.push({ t: name, fg: C.text, bg: C.bar }, { t: target, fg: C.grey, bg: C.bar });
+  else left.push({ t: clip(name, room), fg: C.text, bg: C.bar });
   const lw = left.reduce((n, g) => n + width(g.t), 0);
   const gap = Math.max(1, w - lw - rw);
   return fit([...left, { t: " ".repeat(gap), bg: C.bar }, ...right], w, C.bar);
 }
+
+const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 export function messageRow(s: State, w: number): Row {
   const o = s.ui.overlay;
@@ -360,8 +430,12 @@ export function messageRow(s: State, w: number): Row {
   }
   if (o?.kind === "picker") return fit([{ t: " move to which category?", fg: C.info, bold: true, bg: C.page }], w, C.page);
   const m = s.ui.message;
+  if (!m && s.analysis.status === "running" && s.screen === "main") {
+    const frame = SPINNER[s.analysis.frame % SPINNER.length] as string;
+    return fit([{ t: ` ${frame} analysing keymaps…`, fg: C.dim, italic: true, bg: C.page }], w, C.page);
+  }
   if (!m) return blank(w, C.page);
-  return fit([{ t: ` ${m.text}`, fg: levelColor(m.level), bold: m.level !== "info", bg: C.page }], w, C.page);
+  return fit([{ t: ` ${m.text}`, fg: levelColor(m.level), bold: m.level !== "info" && m.level !== "dim", bg: C.page }], w, C.page);
 }
 
 export function legendItems(s: State): LegendItem[] {
@@ -467,6 +541,7 @@ export function popup(s: State, size: { w: number; h: number }): Popup | null {
       save: " save ",
       apply: " apply keep_headers import ",
       import: " import ",
+      entry: " delete entry ",
     }[o.purpose];
     return { title, color, width: maxW, rows };
   }
@@ -475,7 +550,8 @@ export function popup(s: State, size: { w: number; h: number }): Popup | null {
     const rows = o.lines.flatMap((t) => wrap(t, innerW - 2)).map((t) => line(t, t.startsWith("  ") ? C.grey : C.text));
     rows.push(line(""));
     rows.push(line("press any key", C.dim));
-    return { title: o.level === "ok" ? " saved " : o.level === "error" ? " failed " : " done ", color, width: maxW, rows };
+    const title = o.level === "ok" ? " saved " : o.level === "error" ? " failed " : o.level === "dim" ? " removed defaults " : " done ";
+    return { title, color, width: maxW, rows };
   }
   return null;
 }

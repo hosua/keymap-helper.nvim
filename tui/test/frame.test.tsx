@@ -6,9 +6,9 @@ import type { KeyInput } from "@opentui/core/testing";
 import { testRender } from "@opentui/react/test-utils";
 import { act } from "react";
 import type { Bridge } from "../src/bridge.ts";
-import type { Loaded, SavePlan, SaveResult } from "../src/types.ts";
+import type { Loaded, SavePlan, SaveResult, Snapshot } from "../src/types.ts";
 import { App } from "../src/ui.tsx";
-import { doc, loaded, map, raw } from "./helpers.ts";
+import { conflictDoc, doc, loaded, map, raw, snapshot } from "./helpers.ts";
 
 const entries = () => [
   map("a", "<leader>ff", "uncategorized", { opts: { desc: "find files", silent: true } }),
@@ -45,14 +45,18 @@ function fakeBridge(log: SavePlan[] = []): Bridge {
       return r;
     },
     importTemplate: async () => "imported",
+    analyze: async () => snapshot(),
   };
 }
 
 let open: { renderer: { destroy(): void } } | null = null;
 afterEach(() => open?.renderer.destroy());
 
-async function mount(w: number, h: number, bridge = fakeBridge()) {
-  const setup = await testRender(<App initial={fixture()} bridge={bridge} onQuit={() => {}} />, { width: w, height: h });
+async function mount(w: number, h: number, bridge = fakeBridge(), opts: { initial?: Loaded; snapshot?: Snapshot | null } = {}) {
+  const setup = await testRender(<App initial={opts.initial ?? fixture()} bridge={bridge} snapshot={opts.snapshot} onQuit={() => {}} />, {
+    width: w,
+    height: h,
+  });
   open = setup;
   await setup.renderOnce();
   const frame = async () => {
@@ -220,5 +224,82 @@ describe("rendered behaviour", () => {
     });
     expect(log).toHaveLength(1);
     expect(log[0]?.order.find((o) => o.id === "a")?.category).toBe("lsp");
+  });
+});
+
+describe.each(sizes)("conflicts at %ix%i", (w, h) => {
+  const opts = () => ({ initial: loaded(conflictDoc()), snapshot: snapshot() });
+  const lines = (t: string) => t.split("\n");
+
+  test("the top bar counts duplicates and overrides and nothing overflows", async () => {
+    const { frame } = await mount(w, h, fakeBridge(), opts());
+    const text = await frame();
+    expect(text).toContain("1 duplicate");
+    expect(text).toContain("1 override");
+    expect(text).toContain("1 removed");
+    for (const l of lines(text)) expect(Bun.stringWidth(l)).toBeLessThanOrEqual(w);
+    expect(text).toMatchSnapshot();
+  });
+
+  test("the override chip shows old -> new, fitted to the row", async () => {
+    const { frame, press } = await mount(w, h, fakeBridge(), opts());
+    await press("j", "l");
+    const text = await frame();
+    // the list row keeps what fits and ends in an ellipsis; the details pane has the whole line
+    expect(text).toContain(w >= 140 ? "~ Telescope help_tags ->" : "~ Teles");
+    expect(text).toContain("…");
+    // the details pane has the whole line
+    expect(text).toContain("OVERRIDES a default");
+    expect(text).toContain(w >= 140 ? "<leader>h: Telescope help_tags" : "help_tags");
+    for (const l of lines(text)) expect(Bun.stringWidth(l)).toBeLessThanOrEqual(w);
+    expect(text).toMatchSnapshot();
+  });
+
+  test("a duplicate shows who wins and who is shadowed, in both entries", async () => {
+    const { frame, press } = await mount(w, h, fakeBridge(), opts());
+    await press("j", "l", "j");
+    let text = await frame();
+    expect(text).toContain("shadowed by git/x2");
+    expect(text).toContain("DUPLICATE on n <leader>x");
+    expect(text).toContain("wins");
+    for (const l of lines(text)) expect(Bun.stringWidth(l)).toBeLessThanOrEqual(w);
+    expect(text).toMatchSnapshot();
+    await press("o");
+    text = await frame();
+    expect(text).toContain("the other entry on this key: git/x2");
+    expect(text).toContain("! wins");
+  });
+});
+
+describe("analysis in the app", () => {
+  test("shows a spinner row while the analysis runs, then the counts", async () => {
+    let release: (s: Snapshot) => void = () => {};
+    const bridge = { ...fakeBridge(), analyze: () => new Promise<Snapshot>((r) => (release = r)) };
+    const { frame } = await mount(100, 30, bridge, { initial: loaded(conflictDoc()) });
+    expect(await frame()).toContain("analysing keymaps");
+    await act(async () => {
+      release(snapshot());
+      await Bun.sleep(10);
+    });
+    const text = await frame();
+    expect(text).not.toContain("analysing keymaps");
+    expect(text).toContain("1 override");
+  });
+
+  test("a failed analysis leaves a dim note and the local duplicates still work", async () => {
+    const bridge = {
+      ...fakeBridge(),
+      analyze: async () => {
+        throw new Error("analysis timed out after 30s");
+      },
+    };
+    const { frame } = await mount(100, 30, bridge, { initial: loaded(conflictDoc()) });
+    await act(async () => {
+      await Bun.sleep(10);
+    });
+    const text = await frame();
+    expect(text).toContain("analysis failed: analysis timed out after 30s");
+    expect(text).toContain("no analysis");
+    expect(text).toContain("1 duplicate");
   });
 });

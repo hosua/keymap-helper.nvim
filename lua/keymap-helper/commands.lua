@@ -106,6 +106,9 @@ M.subcommands = {
     end
     template_step("generate", opts)
   end,
+  edit = function()
+    require("keymap-helper.tui").edit()
+  end,
   show = function()
     require("keymap-helper").show()
   end,
