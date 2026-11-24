@@ -1,0 +1,40 @@
+ keymap-helper  lua/mappings.template.json -> lua/mappings.lua                                                                        saved
+ Categories                  16  Uncategorized                                           0/0  Details
+ ✓ Uncategorized              0  nothing here yet. Press m on entries in another category.    category Uncategorized
+ ■ Retired NvChad defaults    1                                                               entries none
+ ■ General                    7
+ ■ Splits                     2
+ ■ LSP / diagnostics          6
+ ■ Reset  (<leader>r)         1
+ ■ Line display  (<leader>l)  5
+ ■ Git / goto  (<leader>g)   15
+ ■ Toggles & Terminal <leade… 4
+ ■ Pickers(<leader>pt)        2
+ ■ UI / messages              1   ╭─ options ────────────────────────────────────────────────────────────╮
+ ■ Telescope  (<leader>f)    11   │                              Truecolor                               │
+ ■ Sessions                   8   │                               ← True →                               │
+ ■ CodeCompanion (Claude vi… 27   ╰──────────────────────────────────────────────────────────────────────╯
+ ■ DevDocs  (<leader>d)       9
+ ■ Debug (DAP)  (<leader>D)   8
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ j k row
+ h l change value
+ esc close
+
+
+

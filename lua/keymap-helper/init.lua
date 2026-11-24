@@ -38,6 +38,11 @@ end
 --- Open the grouped keymap list.
 --- @return integer win
 function M.show()
+  local ui = require "keymap-helper.ui.float"
+  local open = ui.focus_list()
+  if open then
+    return open
+  end
   local cfg = config.get()
   local collect = require "keymap-helper.collect"
   local model = require "keymap-helper.model"
@@ -45,12 +50,14 @@ function M.show()
   local env = { mapleader = vim.g.mapleader, maplocalleader = vim.g.maplocalleader }
   local state = model.build(cfg, model.gather(cfg), collect.normalize, collect.display, env)
   return (
-    require("keymap-helper.ui.float").open_list(
-      state,
-      model.initial_view(state),
-      { title = cfg.window.title, max_width = cfg.window.max_width }
-    )
+    ui.open_list(state, model.initial_view(state), { title = cfg.window.title, max_width = cfg.window.max_width })
   )
+end
+
+--- Close the keymap list from anywhere (the escape hatch for a stuck focus).
+--- @return boolean closed
+function M.close()
+  return require("keymap-helper.ui.float").close_list()
 end
 
 --- Show the startup nudge toward the list. The key shown is whatever the

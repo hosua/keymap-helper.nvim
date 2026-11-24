@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Mouse in the list float, sent as real SGR terminal sequences: a click on a
-# section header toggles it, and a click in another window leaves the float.
+# section header toggles it, and a click in another window leaves focus in the float (it is modal).
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 source tests/smoke/lib.sh
@@ -25,8 +25,13 @@ smoke_reject 'git blame line'
 
 click 3 3
 smoke_keys ':echo "rel=[" . nvim_win_get_config(0).relative . "]"' Enter
-smoke_expect 'rel=\[\]'
+smoke_expect 'rel=\[editor\]'
 smoke_reject 'E[0-9]+:'
+smoke_keys Escape
+smoke_expect '▸ Custom'
+smoke_keys q
+smoke_keys ':echo "rel2=[" . nvim_win_get_config(0).relative . "]"' Enter
+smoke_expect 'rel2=\[\]'
 smoke_stop
 smoke_rmdir "$tmp"
 echo "mouse smoke: ok"

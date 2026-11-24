@@ -1,0 +1,24 @@
+ keymap-helper  lua/mappings.template.json -> lua/mappings.lua            saved
+ Categories      16  Uncategorized               0/0  Details
+ ✓ Uncategorized  0  nothing here yet. Press m on en… category Uncategorized
+ ■ Retired NvCha… 1                                   entries none
+ ■ General        7
+ ■ Splits         2
+ ■ L╭─ options ────────────────────────────────────────────────────────────╮
+ ■ R│                              Truecolor                               │
+ ■ L│                               ← True →                               │
+ ■ G╰──────────────────────────────────────────────────────────────────────╯
+ ■ Toggles & Ter… 4
+ ■ Pickers(<lead… 2
+ ■ UI / messages  1
+
+ j k row
+ h l change value
+ esc close
+
+
+
+
+
+
+

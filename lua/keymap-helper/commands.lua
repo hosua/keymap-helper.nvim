@@ -112,6 +112,11 @@ M.subcommands = {
   show = function()
     require("keymap-helper").show()
   end,
+  close = function()
+    if not require("keymap-helper").close() then
+      vim.notify "keymap-helper: no keymap list is open"
+    end
+  end,
   hint = function()
     require("keymap-helper").hint()
   end,
