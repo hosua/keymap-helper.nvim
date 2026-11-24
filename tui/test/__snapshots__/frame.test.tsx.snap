@@ -1,0 +1,141 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`frame at 80x24 fills the screen without overflow and shows all three panes and the legend 1`] = `
+" keymap-helper  lua/mappings.template.json -> lua/mappings.lua            saved 
+ Categories       3  Uncategorized              1/43  Details                   
+ ! Uncategorized 43   n     <leader>ff  find fi… rhs  <leader>ff                
+ ■ Lsp            1   nv    <leader>fg  live gr… rhs  modes    n                
+ ■ Keys           1   raw   local map = vim.key… raw  category Uncategorized    
+                      n     <leader>z0  do <lea… rhs  desc     find files       
+                      n     <leader>z1  do <lea… rhs  action   rhs :<leader>ff  
+                      n     <leader>z2  do <lea… rhs  options  silent           
+                      n     <leader>z3  do <lea… rhs  generated Lua             
+                      n     <leader>z4  do <lea… rhs  map("n", "<leader>ff",    
+                      n     <leader>z5  do <lea… rhs  ":<leader>ff")            
+                      n     <leader>z6  do <lea… rhs                            
+                      n     <leader>z7  do <lea… rhs                            
+                      n     <leader>z8  do <lea… rhs                            
+                      n     <leader>z9  do <lea… rhs                            
+                      n     <leader>z10 do <lea… rhs                            
+ entries are grouped by category on load; nothing is written until you save     
+ j k   move              V     range             J K   reorder entry            
+ h l   pane              A     mark all          < >   reorder category         
+ gg G  first, last       esc   clear marks       C     category color           
+ ^d ^u half page         m     move to...        u ^r  undo, redo               
+ / n N search            c     new category      i     keep_headers             
+ space mark, next        r     rename            w     save                     
+ v     mark              d     delete category   q     quit                     "
+`;
+
+exports[`frame at 80x24 the move picker, the save summary and the result fit and close 1`] = `
+" keymap-helper  lua/mappings.template.json -> lua/mappings.lua       ● 1 change 
+ Categories       3  Uncategorized              1/42  Details                   
+ ! Uncategorized 42   nv    <leader>fg  live gr… rhs  <leader>fg                
+ ■ Lsp            2   raw   local map = vim.key… raw  modes    n v              
+ ■ K╭─ save ───────────────────────────────────────────────────────────────╮    
+    │ moved 1 entry                                                        │    
+    │                                                                      │fg  
+    │ the template lua/mappings.template.json is saved, its old copy kept  │    
+    │ as a .bak next to it                                                 │    
+    │ lua/mappings.lua is hand-written: it is replaced, its old copy kept  │    
+    │ as a .bak                                                            │    
+    │                                                                      │    
+    │ y yes   n no                                                         │    
+    ╰──────────────────────────────────────────────────────────────────────╯    
+                      n     <leader>z10 do <lea… rhs                            
+                      n     <leader>z11 do <lea… rhs                            
+                                                                                
+ y     yes                                                                      
+ n esc no                                                                       
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                "
+`;
+
+exports[`frame at 140x40 fills the screen without overflow and shows all three panes and the legend 1`] = `
+" keymap-helper  lua/mappings.template.json -> lua/mappings.lua                                                                        saved 
+ Categories                   3  Uncategorized                                          1/43  Details                                       
+ ! Uncategorized             43   n     <leader>ff            find files                 rhs  <leader>ff                                    
+ ■ Lsp                        1   nv    <leader>fg            live grep                  rhs  modes    n                                    
+ ■ Keys                       1   raw   local map = vim.keymap.set                       raw  category Uncategorized                        
+                                  n     <leader>z0            do <leader>z0              rhs  desc     find files                           
+                                  n     <leader>z1            do <leader>z1              rhs  action   rhs :<leader>ff                      
+                                  n     <leader>z2            do <leader>z2              rhs  options  silent                               
+                                  n     <leader>z3            do <leader>z3              rhs  generated Lua                                 
+                                  n     <leader>z4            do <leader>z4              rhs  map("n", "<leader>ff", ":<leader>ff")         
+                                  n     <leader>z5            do <leader>z5              rhs                                                
+                                  n     <leader>z6            do <leader>z6              rhs                                                
+                                  n     <leader>z7            do <leader>z7              rhs                                                
+                                  n     <leader>z8            do <leader>z8              rhs                                                
+                                  n     <leader>z9            do <leader>z9              rhs                                                
+                                  n     <leader>z10           do <leader>z10             rhs                                                
+                                  n     <leader>z11           do <leader>z11             rhs                                                
+                                  n     <leader>z12           do <leader>z12             rhs                                                
+                                  n     <leader>z13           do <leader>z13             rhs                                                
+                                  n     <leader>z14           do <leader>z14             rhs                                                
+                                  n     <leader>z15           do <leader>z15             rhs                                                
+                                  n     <leader>z16           do <leader>z16             rhs                                                
+                                  n     <leader>z17           do <leader>z17             rhs                                                
+                                  n     <leader>z18           do <leader>z18             rhs                                                
+                                  n     <leader>z19           do <leader>z19             rhs                                                
+                                  n     <leader>z20           do <leader>z20             rhs                                                
+                                  n     <leader>z21           do <leader>z21             rhs                                                
+                                  n     <leader>z22           do <leader>z22             rhs                                                
+                                  n     <leader>z23           do <leader>z23             rhs                                                
+                                  n     <leader>z24           do <leader>z24             rhs                                                
+                                  n     <leader>z25           do <leader>z25             rhs                                                
+                                  n     <leader>z26           do <leader>z26             rhs                                                
+                                  n     <leader>z27           do <leader>z27             rhs                                                
+                                  n     <leader>z28           do <leader>z28             rhs                                                
+ entries are grouped by category on load; nothing is written until you save                                                                 
+ j k   move              space mark, next        m     move to...        < >   reorder category  q     quit                                 
+ h l   pane              v     mark              c     new category      C     category color                                               
+ gg G  first, last       V     range             r     rename            u ^r  undo, redo                                                   
+ ^d ^u half page         A     mark all          d     delete category   i     keep_headers                                                 
+ / n N search            esc   clear marks       J K   reorder entry     w     save                                                         "
+`;
+
+exports[`frame at 140x40 the move picker, the save summary and the result fit and close 1`] = `
+" keymap-helper  lua/mappings.template.json -> lua/mappings.lua                                                                   ● 1 change 
+ Categories                   3  Uncategorized                                          1/42  Details                                       
+ ! Uncategorized             42   nv    <leader>fg            live grep                  rhs  <leader>fg                                    
+ ■ Lsp                        2   raw   local map = vim.keymap.set                       raw  modes    n v                                  
+ ■ Keys                       1   n     <leader>z0            do <leader>z0              rhs  category Uncategorized                        
+                                  n     <leader>z1            do <leader>z1              rhs  desc     live grep                            
+                                  n     <leader>z2            do <leader>z2              rhs  action   rhs :<leader>fg                      
+                                  n     <leader>z3            do <leader>z3              rhs  generated Lua                                 
+                                  n     <leader>z4            do <leader>z4              rhs  map("n", "<leader>fg", ":<leader>fg")         
+                                  n     <leader>z5            do <leader>z5              rhs                                                
+                                  ╭─ save ───────────────────────────────────────────────────────────────╮                                  
+                                  │ moved 1 entry                                                        │                                  
+                                  │                                                                      │                                  
+                                  │ the template lua/mappings.template.json is saved, its old copy kept  │                                  
+                                  │ as a .bak next to it                                                 │                                  
+                                  │ lua/mappings.lua is hand-written: it is replaced, its old copy kept  │                                  
+                                  │ as a .bak                                                            │                                  
+                                  │                                                                      │                                  
+                                  │ y yes   n no                                                         │                                  
+                                  ╰──────────────────────────────────────────────────────────────────────╯                                  
+                                  n     <leader>z16           do <leader>z16             rhs                                                
+                                  n     <leader>z17           do <leader>z17             rhs                                                
+                                  n     <leader>z18           do <leader>z18             rhs                                                
+                                  n     <leader>z19           do <leader>z19             rhs                                                
+                                  n     <leader>z20           do <leader>z20             rhs                                                
+                                  n     <leader>z21           do <leader>z21             rhs                                                
+                                  n     <leader>z22           do <leader>z22             rhs                                                
+                                  n     <leader>z23           do <leader>z23             rhs                                                
+                                  n     <leader>z24           do <leader>z24             rhs                                                
+                                  n     <leader>z25           do <leader>z25             rhs                                                
+                                  n     <leader>z26           do <leader>z26             rhs                                                
+                                  n     <leader>z27           do <leader>z27             rhs                                                
+                                  n     <leader>z28           do <leader>z28             rhs                                                
+                                  n     <leader>z29           do <leader>z29             rhs                                                
+                                                                                                                                            
+ y     yes                                                                                                                                  
+ n esc no                                                                                                                                   
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            "
+`;

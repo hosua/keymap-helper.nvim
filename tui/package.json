@@ -1,0 +1,25 @@
+{
+  "name": "keymap-helper-tui",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Terminal UI that sorts the keymaps of a keymap-helper template into categories",
+  "scripts": {
+    "start": "bun run src/index.tsx",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "fmt": "biome check --write ."
+  },
+  "dependencies": {
+    "@opentui/core": "0.9.9",
+    "@opentui/react": "0.9.9",
+    "react": "19.3.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.8",
+    "@types/bun": "1.4.5",
+    "@types/react": "19.3.0",
+    "typescript": "7.0.2"
+  }
+}

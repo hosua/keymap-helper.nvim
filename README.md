@@ -255,6 +255,106 @@ shell completion install lines.
 - The box header is 80 columns wide, the width of the headers the plugin already read.
   A category title is at most 70 columns.
 
+## Sort keymaps in the terminal UI
+
+`tui/` holds a terminal UI (Bun and [OpenTUI](https://opentui.com)) for putting the entries of
+your template into categories. It needs [bun](https://bun.sh) 1.3.14 or later, `nvim`, and
+plenary.nvim where the scripts can find it (see Scripts above). Install its packages once:
+
+```bash
+(cd tui && bun install --frozen-lockfile)
+bun run tui/src/index.tsx --root $HOME/.config/nvim [--template FILE] [--target FILE]
+tui/bin/keymap-helper-tui --root $HOME/.config/nvim     # same thing, bun shebang
+```
+
+The UI never edits a Lua file. It reads and writes the template through
+`scripts/kh-template` and generates `lua/mappings.lua` with `scripts/kh-generate`, so the
+backup, validation and generation rules exist once, in Lua. With no template yet it offers
+to import your mappings file first: `y` imports everything as Uncategorized, `h` keeps the
+file's box headers as categories.
+
+<div align="center" markdown="1">
+
+![The three panes: categories on the left, the entries of Git in the middle, the generated Lua line on the right](docs/media/tui-overview.png)
+
+*Categories, entries and the exact Lua line of the selected map*
+
+</div>
+
+The left pane lists the categories with their entry counts. Uncategorized is always first,
+yellow and bold while it still holds entries. The middle pane lists the entries of the
+selected category: a colored badge per mode, the lhs, the description (or the rhs), and
+`rhs`, `lua` or `raw`. The right pane shows the options, the comment and the Lua line the
+generator will write for that entry. Raw blocks (a `require`, a helper, a loop) are shown
+dimmed. They can be moved but not edited, and moving one changes when it runs.
+
+### Keys
+
+| Key | Action |
+|---|---|
+| `j` `k`, `h` `l`, `gg` `G`, `<C-d>` `<C-u>` | Move, switch pane (`h` categories, `l` entries), first and last, half page |
+| `/`, `n` `N` | Search the focused pane, next and previous match |
+| `<Space>` | Mark the entry and move down |
+| `v` | Mark the entry |
+| `V` | Start a range from here; `V` again turns the range into marks |
+| `A`, `<Esc>` | Mark every entry of the category, clear the marks and any range |
+| `m` | In the entries pane: move the marked entries (or the one under the cursor) to a category you pick with a fuzzy filter, or to a new one |
+| `c`, `r`, `d` | New category, rename, delete (its entries return to Uncategorized, after a confirm) |
+| `J` `K` | In the entries pane: move the marked entries (or the current one) down and up inside the category |
+| `<` `>` | Move the selected category up and down |
+| `C` | Next color for the selected category (this session only) |
+| `u`, `<C-r>` | Undo, redo (in memory) |
+| `i` | Preview what `kh-import --keep-headers` would build; `<CR>` applies it after a confirm, `i` leaves |
+| `w` | Save |
+| `q`, `<C-c>` | Quit; with unsaved changes it asks |
+
+Marks stay when you change category, so one `m` can move entries from several categories.
+In the move picker, type to filter, `<C-n>` `<C-p>` or the arrows to choose, `<CR>` to
+pick, `<Esc>` to cancel. The last item is `+ new category`: with text typed it creates a
+category with that name, without text it asks for one. The mouse works too: click a row,
+scroll with the wheel.
+
+<div align="center" markdown="1">
+
+![The move picker listing categories with a fuzzy filter and a new category item](docs/media/tui-picker.png)
+
+*Move the marked entries to a category*
+
+</div>
+
+### Saving
+
+`w` shows what will change (entries moved, categories added, renamed or deleted, entries
+reordered) and asks. After `y` it does two things:
+
+1. Writes the template through `kh-template save`. The old template is copied to
+   `mappings.template_<YYYY_MM_DD_hh:mm:ss>.bak` next to it.
+2. Runs `kh-generate`, which copies the old mappings file to
+   `mappings_<YYYY_MM_DD_hh:mm:ss>.bak` and writes the new one.
+
+<div align="center" markdown="1">
+
+![The save summary, then the result listing both backup paths](docs/media/tui-saved.png)
+
+*After a save, both backups are listed*
+
+</div>
+
+If the template is saved but generating fails, the result says so and names the error. The
+template is already on disk, so fix the error and run `scripts/kh-generate`. Entries you
+do not touch keep their fields and their place within their category. The generator writes
+entries grouped by category, in the order of the left pane, and a category the template
+holds in several runs is grouped into one block when the UI loads it (it says so, and
+nothing is written until you save).
+
+The keep_headers preview is read only. It shows the template an import would build from
+your current mappings file. Applying it replaces your template (backed up first) and drops
+the unsaved edits of the session.
+
+Entries may carry keys that start with `_`, which the schema keeps and the generator
+ignores. The details pane shows a list of strings in `_badges` as chips, so another tool
+can flag an entry without the UI knowing about it.
+
 ## Keys inside the list
 
 | Key | Action |
@@ -459,7 +559,12 @@ make test         # headless unit tests, no dependencies, throwaway XDG tree
 make integration  # end-to-end: detection against a fake config, and import -> generate on a copy of a real mappings file
 make smoke        # real TUI in a private tmux server: hint, list, folding, mouse
 make check        # stylua --check
+make tui-test     # terminal UI: bun test (state, frames at 80x24 and 140x40, import -> save -> generate), tsc, biome
 ```
+
+`make test` also runs `make tui-test`. Without bun it prints why it skipped and passes.
+`make smoke` includes `tests/smoke/tui_smoke.sh`, which drives the UI in tmux against a
+throwaway root and checks the generated file and both backups.
 
 ## License
 

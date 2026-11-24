@@ -6,6 +6,7 @@
 local Path = require "plenary.path"
 local backup = require "keymap-helper.template.backup"
 local generate = require "keymap-helper.template.generate"
+local edit = require "keymap-helper.template.edit"
 local import = require "keymap-helper.template.import"
 local json = require "keymap-helper.template.json"
 local schema = require "keymap-helper.template.schema"
@@ -118,6 +119,16 @@ local function counts(tpl)
   return maps, raw
 end
 
+local function parse_source(p, opts, source, disk)
+  local cfg = require("keymap-helper.config").get()
+  return import.parse(generate.strip_header(disk), {
+    keep_headers = opts.keep_headers,
+    map_functions = cfg.map_functions,
+    header_pattern = cfg.header_pattern,
+    target = vim.startswith(source, p.root .. "/") and source:sub(#p.root + 2) or source,
+  })
+end
+
 --- Build the template from the mappings file. Does nothing when the template
 --- already generates that file. Never touches the mappings file.
 --- @param opts KeymapHelperTemplateOpts|nil
@@ -156,18 +167,86 @@ function M.import(opts)
       return nil, msg or "import cancelled, the template is unchanged"
     end
   end
-  local tpl = import.parse(generate.strip_header(disk), {
-    keep_headers = opts.keep_headers,
-    map_functions = require("keymap-helper.config").get().map_functions,
-    header_pattern = require("keymap-helper.config").get().header_pattern,
-    target = vim.startswith(source, p.root .. "/") and source:sub(#p.root + 2) or source,
-  })
+  local tpl = parse_source(p, opts, source, disk)
   local bak, err = save(tpl, p.template, p, opts.now)
   if err then
     return nil, err
   end
   local maps, raw = counts(tpl)
   return { status = "imported", template = p.template, maps = maps, raw = raw, backup = bak ~= "" and bak or nil }
+end
+
+local function info(p, tpl)
+  local target = target_of(p, tpl)
+  local disk = generate.read(target)
+  return {
+    root = p.root,
+    template = p.template,
+    template_name = p.template_name,
+    target = target,
+    backups = p.backups,
+    target_exists = disk ~= nil,
+    target_generated = disk ~= nil and generate.has_header(disk),
+  }
+end
+
+--- What the terminal UI shows: the template (or `status = "missing"` when
+--- there is none yet), with the Lua line of every map. Writes nothing.
+--- @param opts KeymapHelperTemplateOpts|nil
+--- @return table|nil view, string|nil err
+function M.show(opts)
+  local p = M.paths(opts)
+  if not Path:new(p.template):exists() then
+    local missing = info(p, nil)
+    missing.status = "missing"
+    missing.source_exists = Path:new(missing.target):exists()
+    return missing
+  end
+  local tpl, err = M.load(p.template)
+  if not tpl then
+    return nil, err
+  end
+  return vim.tbl_extend("error", info(p, tpl), edit.view(tpl), { status = "ready" })
+end
+
+--- What an import would build from the mappings file, without writing it.
+--- `opts.keep_headers` picks the mode. Same shape as `show`, status "preview".
+--- @param opts KeymapHelperTemplateOpts|nil
+--- @return table|nil view, string|nil err
+function M.preview(opts)
+  opts = opts or {}
+  local p = M.paths(opts)
+  local existing = Path:new(p.template):exists() and M.load(p.template) or nil
+  local source = target_of(p, existing)
+  local disk = generate.read(source)
+  if not disk then
+    return nil, ("nothing to import: %s does not exist"):format(source)
+  end
+  local tpl = parse_source(p, opts, source, disk)
+  return vim.tbl_extend("error", info(p, tpl), edit.view(tpl), { status = "preview" })
+end
+
+--- Apply a plan from the UI (see edit.lua) to the template on disk, backing
+--- up the old file first.
+--- @param plan table
+--- @param opts KeymapHelperTemplateOpts|nil
+--- @return table|nil result { template, backup? }, string|nil err
+function M.save_plan(plan, opts)
+  opts = opts or {}
+  local p = M.paths(opts)
+  local tpl, err = M.load(p.template)
+  if not tpl then
+    return nil, err
+  end
+  local new, perr = edit.apply_plan(tpl, plan)
+  if not new then
+    return nil, perr
+  end
+  local bak, serr = save(new, p.template, p, opts.now)
+  if serr then
+    return nil, serr
+  end
+  return { template = p.template, backup = bak ~= "" and bak or nil }
 end
 
 --- Write the mappings file from the template.

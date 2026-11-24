@@ -2,3 +2,5 @@
 .luarc.json
 doc/tags
 .tests/
+
+tui/node_modules/
