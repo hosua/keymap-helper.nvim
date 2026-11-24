@@ -3,7 +3,7 @@
 //
 // Invariant: `entries` is grouped by category, in the order of `categories`,
 // and Uncategorized is the first category. The generator writes entries in
-// array order and starts a new box header whenever the category changes, so
+// array order and starts a new category header whenever the category changes, so
 // this is also the order of the generated file.
 import { type Category, type Doc, type Entry, UNCATEGORIZED } from "./types.ts";
 

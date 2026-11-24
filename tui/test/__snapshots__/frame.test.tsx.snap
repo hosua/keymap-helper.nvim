@@ -22,7 +22,7 @@ exports[`frame at 80x24 fills the screen without overflow and shows all three pa
  ^d ^u half page         r     rename            x     delete shadowed          
  / n N search            d     delete category   P     swap winner              
  space mark, next        J K   reorder entry     D     removed defs             
- v     mark              < >   reorder category  i     keep_headers             
+ v     mark              < >   reorder category  i     preview import           
  V     range             C     category color    w     save                     
  A     mark all          u ^r  undo, redo        q     quit                     "
 `;
@@ -89,7 +89,7 @@ exports[`frame at 140x40 fills the screen without overflow and shows all three p
                                   n     <leader>z26           do <leader>z26             rhs                                                
                                   n     <leader>z27           do <leader>z27             rhs                                                
  entries are grouped by category on load; nothing is written until you save                                                                 
- j k   move              v     mark              r     rename            !     conflicts only    i     keep_headers                         
+ j k   move              v     mark              r     rename            !     conflicts only    i     preview import                       
  h l   pane              V     range             d     delete category   ]c [c jump conflict     w     save                                 
  gg G  first, last       A     mark all          J K   reorder entry     o     other entry       q     quit                                 
  ^d ^u half page         esc   clear marks       < >   reorder category  x     delete shadowed                                              
@@ -162,7 +162,7 @@ exports[`conflicts at 80x24 the top bar counts duplicates and overrides and noth
  ^d ^u half page         r     rename            x     delete shadowed          
  / n N search            d     delete category   P     swap winner              
  space mark, next        J K   reorder entry     D     removed defs             
- v     mark              < >   reorder category  i     keep_headers             
+ v     mark              < >   reorder category  i     preview import           
  V     range             C     category color    w     save                     
  A     mark all          u ^r  undo, redo        q     quit                     "
 `;
@@ -189,7 +189,7 @@ exports[`conflicts at 80x24 the override chip shows old -> new, fitted to the ro
  ^d ^u half page         r     rename            x     delete shadowed          
  / n N search            d     delete category   P     swap winner              
  space mark, next        J K   reorder entry     D     removed defs             
- v     mark              < >   reorder category  i     keep_headers             
+ v     mark              < >   reorder category  i     preview import           
  V     range             C     category color    w     save                     
  A     mark all          u ^r  undo, redo        q     quit                     "
 `;
@@ -216,7 +216,7 @@ exports[`conflicts at 80x24 a duplicate shows who wins and who is shadowed, in b
  ^d ^u half page         r     rename            x     delete shadowed          
  / n N search            d     delete category   P     swap winner              
  space mark, next        J K   reorder entry     D     removed defs             
- v     mark              < >   reorder category  i     keep_headers             
+ v     mark              < >   reorder category  i     preview import           
  V     range             C     category color    w     save                     
  A     mark all          u ^r  undo, redo        q     quit                     "
 `;
@@ -256,7 +256,7 @@ exports[`conflicts at 140x40 the top bar counts duplicates and overrides and not
                                                                                                                                             
                                                                                                                                             
                                                                                                                                             
- j k   move              v     mark              r     rename            !     conflicts only    i     keep_headers                         
+ j k   move              v     mark              r     rename            !     conflicts only    i     preview import                       
  h l   pane              V     range             d     delete category   ]c [c jump conflict     w     save                                 
  gg G  first, last       A     mark all          J K   reorder entry     o     other entry       q     quit                                 
  ^d ^u half page         esc   clear marks       < >   reorder category  x     delete shadowed                                              
@@ -299,7 +299,7 @@ exports[`conflicts at 140x40 the override chip shows old -> new, fitted to the r
                                                                                                                                             
                                                                                                                                             
                                                                                                                                             
- j k   move              v     mark              r     rename            !     conflicts only    i     keep_headers                         
+ j k   move              v     mark              r     rename            !     conflicts only    i     preview import                       
  h l   pane              V     range             d     delete category   ]c [c jump conflict     w     save                                 
  gg G  first, last       A     mark all          J K   reorder entry     o     other entry       q     quit                                 
  ^d ^u half page         esc   clear marks       < >   reorder category  x     delete shadowed                                              
@@ -342,7 +342,7 @@ exports[`conflicts at 140x40 a duplicate shows who wins and who is shadowed, in 
                                                                                                                                             
                                                                                                                                             
                                                                                                                                             
- j k   move              v     mark              r     rename            !     conflicts only    i     keep_headers                         
+ j k   move              v     mark              r     rename            !     conflicts only    i     preview import                       
  h l   pane              V     range             d     delete category   ]c [c jump conflict     w     save                                 
  gg G  first, last       A     mark all          J K   reorder entry     o     other entry       q     quit                                 
  ^d ^u half page         esc   clear marks       < >   reorder category  x     delete shadowed                                              

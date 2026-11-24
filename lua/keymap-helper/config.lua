@@ -44,8 +44,9 @@ M.defaults = {
     which_key = true, -- name <leader>x groups after which-key groups, if loaded
   },
   -- Lua pattern for a section header comment; capture 1 is the header text.
-  -- The default matches `-- │ General │` box-drawing headers.
-  header_pattern = "^%-%- │%s*(.-)%s*│$",
+  -- The default matches `-- [General]`. The old `-- │ General │` box headers
+  -- are always recognised as well.
+  header_pattern = "^%-%- %[(.-)%]%s*$",
   -- Function names treated as "set a mapping" when scanning files.
   map_functions = { "map", "vim.keymap.set", "keymap.set" },
   -- Modes whose live mappings are listed (plus any mode a `files` section sets).

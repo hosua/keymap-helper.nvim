@@ -49,7 +49,7 @@ your key). A key you already mapped is never overwritten.
 
 ## Example: an NvChad config
 
-The author's `lua/plugins/keymap-helper.lua`: custom maps first, grouped by the box comments
+The author's `lua/plugins/keymap-helper.lua`: custom maps first, grouped by the `-- [Name]` comments
 in `lua/mappings.lua`, then NvChad's own maps, folded.
 
 ```lua
@@ -74,31 +74,26 @@ so it does not need to be listed.
 ### How headers become groups
 
 `group_by = "header"` reads the comments in the section's files. Every line that matches
-`header_pattern` (default: `-- │ Name │`) starts a group, and the maps below it belong to
-that group. The box's top and bottom lines are decoration. Part of that `lua/mappings.lua`:
+`header_pattern` (default: `-- [Name]`) starts a group, and the maps below it belong to
+that group. The old three-line box header (`-- │ Name │` between a top and a bottom line)
+is read as well. Part of that `lua/mappings.lua`:
 
 ```lua
 require "nvchad.mappings"
 
 local map = vim.keymap.set
 
--- ┌──────────────────────────────────────────┐
--- │ General                                  │
--- └──────────────────────────────────────────┘
+-- [General]
 
 map("n", ";", ":", { desc = "CMD enter command mode" })
 map("n", "<leader>h", "<cmd>Telescope help_tags<CR>", { desc = "telescope help page" })
 
--- ┌──────────────────────────────────────────┐
--- │ Splits                                   │
--- └──────────────────────────────────────────┘
+-- [Splits]
 
 map("n", "<leader>-", "<cmd>vsp<CR>", { desc = "split vertically" })
 map("n", "<leader>=", "<cmd>sp<CR>", { desc = "split horizontally" })
 
--- ┌──────────────────────────────────────────┐
--- │ Git / goto  (<leader>g)                  │
--- └──────────────────────────────────────────┘
+-- [Git / goto  (<leader>g)]
 
 map("n", "<leader>gg", "<cmd>LazyGit<CR>", { desc = "open lazygit TUI" })
 map("n", "<leader>gb", "<cmd>Gitsigns blame<CR>", { desc = "blame current line" })
@@ -141,7 +136,7 @@ and explains mode letters and key notation. Rows are coloured by role: mode, key
 | `:KeymapHelper` / `:KeymapHelper show` | Open the keymap list |
 | `:KeymapHelper hint` | Show the startup hint again |
 | `:KeymapHelper health` | Same as `:checkhealth keymap-helper` |
-| `:KeymapHelper import [keep_headers]` | Build the keymap template from your mappings file (see below) |
+| `:KeymapHelper import [drop_headers]` | Build the keymap template from your mappings file (see below) |
 | `:KeymapHelper generate [check]` | Write the mappings file from the template, or with `check` only say whether it is in sync |
 | `:KeymapHelper edit` | Open the terminal UI for the template in a floating terminal (needs `bun`, see below) |
 
@@ -171,9 +166,11 @@ parser:
   not expanded into entries, so those maps are not listed in the template as entries.
 - A comment directly above a map (no blank line) is kept as the entry's `comment`, one on
   the same line after it as `trailing`.
-- Every imported map goes in the `Uncategorized` category. Your box-comment headers are
-  dropped, so you can sort the maps yourself. `:KeymapHelper import keep_headers` (or
-  `kh-import --keep-headers`) turns the headers into categories instead.
+- Your category headers (`-- [General]`, or the old box comments) become categories, and
+  each map goes in the category above it. Maps before the first header, and everything
+  when the file has no headers, go in `Uncategorized`. `:KeymapHelper import drop_headers`
+  (or `kh-import --drop-headers`) ignores the headers and puts every map in
+  `Uncategorized`, so you can sort them yourself. From Lua: `template.import { drop_headers = true }`.
 - When the template already exists and generates your current mappings file, import says
   so and changes nothing. When the file has drifted from the template, import asks before
   replacing the template (the old one is saved first).
@@ -191,7 +188,7 @@ mappings_*.bak
 mappings.template_*.bak
 ```
 
-The categories become the box-comment headers `group_by = "header"` reads, so a section
+The categories become one-line `-- [Title]` headers (a subtitle is the comment line under it), which `group_by = "header"` reads, so a section
 like `{ title = "Custom", files = { "lua/mappings.lua" }, group_by = "header" }` shows them
 as groups.
 
@@ -200,7 +197,7 @@ as groups.
 Both run under `nvim -l`, so they use the same code as the commands:
 
 ```bash
-scripts/kh-import   --root=$HOME/.config/nvim [--keep-headers] [--yes]
+scripts/kh-import   --root=$HOME/.config/nvim [--drop-headers] [--yes]
 scripts/kh-generate --root=$HOME/.config/nvim [--check] [--yes]
 scripts/kh-template analyze --root=$HOME/.config/nvim [--timeout=SECONDS]
 ```
@@ -242,7 +239,7 @@ shell completion install lines.
 }
 ```
 
-- Entries are written in array order. A box header is written whenever the category changes
+- Entries are written in array order. A `-- [Title]` header is written whenever the category changes
   from one entry to the next. The preamble comes before all entries.
 - A `map` entry has `rhs` (a string) or `lua` (Lua source), never both.
 - `lua`, `comment`, `trailing`, `text` and the preamble items are strings, or lists of
@@ -255,8 +252,7 @@ shell completion install lines.
   vim.keymap.set` in the preamble).
 - The category `uncategorized` must exist. Ids are unique. A key starting with `_` on an
   entry is ignored by the generator and kept, for other tools.
-- The box header is 80 columns wide, the width of the headers the plugin already read.
-  A category title is at most 70 columns.
+- A category title is at most 70 columns.
 
 ## Sort keymaps in the terminal UI
 
@@ -275,8 +271,8 @@ The UI never edits a Lua file. It reads and writes the template through
 `scripts/kh-template` and generates `lua/mappings.lua` with `scripts/kh-generate`, so the
 backup, validation and generation rules exist once, in Lua. From inside Neovim,
 `:KeymapHelper edit` opens the same UI in a floating terminal (see below). With no template yet it offers
-to import your mappings file first: `y` imports everything as Uncategorized, `h` keeps the
-file's box headers as categories.
+to import your mappings file first: `y` imports with the file's `-- [Name]` headers kept as categories (what
+`:KeymapHelper import` does by default), `d` drops the headers so every entry starts as Uncategorized.
 
 <div align="center" markdown="1">
 
@@ -315,7 +311,7 @@ dimmed. They can be moved but not edited, and moving one changes when it runs.
 | `x` | On a shadowed duplicate: delete that entry, after a confirm |
 | `P` | On a duplicate: swap precedence, so the other entry wins |
 | `D` | List the defaults your template removes |
-| `i` | Preview what `kh-import --keep-headers` would build; `<CR>` applies it after a confirm, `i` leaves |
+| `i` | Preview what `kh-import` would build; `<CR>` applies it after a confirm, `i` leaves |
 | `w` | Save |
 | `q`, `<C-c>` | Quit; with unsaved changes it asks |
 
@@ -446,7 +442,7 @@ entries grouped by category, in the order of the left pane, and a category the t
 holds in several runs is grouped into one block when the UI loads it (it says so, and
 nothing is written until you save).
 
-The keep_headers preview is read only. It shows the template an import would build from
+The headers preview is read only. It shows the template an import would build from
 your current mappings file. Applying it replaces your template (backed up first) and drops
 the unsaved edits of the session.
 
@@ -508,8 +504,9 @@ require("keymap-helper").setup {
     which_key = true, -- name <leader>x groups after which-key groups, if loaded
   },
   -- Lua pattern for a section header comment; capture 1 is the header text.
-  -- The default matches `-- │ General │` box-drawing headers.
-  header_pattern = "^%-%- │%s*(.-)%s*│$",
+  -- The default matches `-- [General]`. The old `-- │ General │` box headers
+  -- are always recognised as well.
+  header_pattern = "^%-%- %[(.-)%]%s*$",
   -- Function names treated as "set a mapping" when scanning files.
   map_functions = { "map", "vim.keymap.set", "keymap.set" },
   -- Modes whose live mappings are listed (plus any mode a `files` section sets).
@@ -555,7 +552,7 @@ reported with a warning.
 | `mode` | string or string[] | Only these modes |
 | `fn` | `function(map, origin) -> boolean` | Custom matcher. `origin.kind` is `config`, `plugin`, `builtin` or `unknown`; `origin.plugin`, `origin.file` when known |
 | `rest` | boolean | Fallback: takes whatever no other section matched |
-| `group_by` | `"header"`, `"plugin"`, `"leader_prefix"`, `"none"` | Sub-groups. `header` uses `-- │ Name │` comments in the files, `leader_prefix` groups by `<leader>x` |
+| `group_by` | `"header"`, `"plugin"`, `"leader_prefix"`, `"none"` | Sub-groups. `header` uses `-- [Name]` comments in the files, `leader_prefix` groups by `<leader>x` |
 | `collapsed` | boolean | Start folded |
 | `hidden` | boolean | Claim the maps but do not show the section (to suppress noise) |
 
@@ -647,7 +644,7 @@ known origin.
   plugin does not overwrite a key you mapped yourself, and with lazy.nvim the key exists only
   once the plugin has loaded (`event = "VimEnter"`).
 - **My maps show no groups**: `group_by = "header"` needs comments matching `header_pattern`
-  (default `-- │ Name │`). Without them, use `group_by = "leader_prefix"`.
+  (default `-- [Name]`, the old box form works too). Without them, use `group_by = "leader_prefix"`.
 - **Maps set in an `LspAttach` autocmd are missing**: they are buffer-local, and the list only
   shows global maps.
 

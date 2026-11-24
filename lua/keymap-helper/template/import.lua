@@ -10,7 +10,9 @@ local schema = require "keymap-helper.template.schema"
 local M = {}
 
 --- @class KeymapHelperImportOpts
---- @field keep_headers boolean|nil turn the file's box-comment headers into categories (default false: everything is uncategorized)
+--- @field drop_headers boolean|nil ignore the file's category headers, everything is uncategorized (default false: headers become categories)
+--- @field keep_headers boolean|nil legacy switch, `false` means the same as `drop_headers`
+--- @field header_pattern string|nil one-line header pattern, capture 1 is the title (default `-- [Title]`)
 --- @field map_functions string[]|nil call names read as "set a mapping"
 --- @field target string|nil `target` written into the template
 
@@ -171,7 +173,7 @@ local function read_map(node, src, fns)
   return e
 end
 
---- Split a run of comment lines into plain comment pieces and box headers.
+--- Split a run of comment lines into plain comment pieces and category headers.
 --- @param lines string[] the run's lines
 --- @param first_row integer row (0-based) of the first line
 --- @return table[] pieces { type = "comment"|"header", s, e, text?, title? }
@@ -185,6 +187,7 @@ local function split_run(lines, first_row, header_pattern)
       cur = nil
     end
   end
+  local box = require("keymap-helper.scan").LEGACY_BOX
   local function is_top(l)
     return l and vim.startswith(l, "-- ┌") and vim.endswith(l, "┐")
   end
@@ -193,11 +196,15 @@ local function split_run(lines, first_row, header_pattern)
   end
   local i = 1
   while i <= #lines do
-    local title = is_top(lines[i]) and is_bottom(lines[i + 2]) and lines[i + 1]:match(header_pattern)
+    local title = is_top(lines[i]) and is_bottom(lines[i + 2]) and lines[i + 1]:match(box)
+    local width = 3
+    if not title then
+      title, width = lines[i]:match(header_pattern), 1
+    end
     if title then
       flush(i - 1)
-      pieces[#pieces + 1] = { type = "header", s = first_row + i - 1, e = first_row + i + 1, title = title }
-      i = i + 3
+      pieces[#pieces + 1] = { type = "header", s = first_row + i - 1, e = first_row + i + width - 2, title = title }
+      i = i + width
     else
       cur = cur or { type = "comment", s = first_row + i - 1, i = i }
       i = i + 1
@@ -254,12 +261,13 @@ end
 function M.parse(src, opts)
   opts = opts or {}
   local fns = opts.map_functions or { "map", "vim.keymap.set", "keymap.set" }
-  local header_pattern = opts.header_pattern or "^%-%- │%s*(.-)%s*│$"
+  local header_pattern = opts.header_pattern or "^%-%- %[(.-)%]%s*$"
   local tpl = schema.new(opts.target)
   local root = vim.treesitter.get_string_parser(src, "lua"):parse()[1]:root()
   local lines = vim.split(src, "\n", { plain = true })
   local items = collect_items(root, src, lines, header_pattern)
 
+  local keep = not opts.drop_headers and opts.keep_headers ~= false
   local by_title, current, n = {}, schema.UNCATEGORIZED, 0
   local preamble_open = true
   local function next_id()
@@ -276,7 +284,7 @@ function M.parse(src, opts)
 
   for _, it in ipairs(items) do
     if it.type == "header" then
-      if opts.keep_headers then
+      if keep then
         preamble_open = false
         local id = by_title[it.title]
         if not id then

@@ -150,8 +150,18 @@ describe("template import: headers", function()
     'map("n", "c", "d")',
   }, "\n")
 
-  it("drops headers by default: everything is uncategorized", function()
+  it("keeps headers by default: each one becomes a category", function()
     local t = parse(SRC)
+    eq(
+      { "uncategorized", "general", "splits" },
+      vim.tbl_map(function(c)
+        return c.id
+      end, t.categories)
+    )
+  end)
+
+  it("drop_headers makes everything uncategorized", function()
+    local t = parse(SRC, { drop_headers = true })
     eq(
       { "uncategorized" },
       vim.tbl_map(function(c)
@@ -161,6 +171,68 @@ describe("template import: headers", function()
     for _, e in ipairs(t.entries) do
       eq("uncategorized", e.category)
     end
+  end)
+
+  it("keep_headers = false is the same as drop_headers", function()
+    local t = parse(SRC, { keep_headers = false })
+    eq(1, #t.categories)
+  end)
+
+  it("reads the old three-line box headers too", function()
+    local box = table.concat({
+      "-- ┌───────────────────┐",
+      "-- │ General           │",
+      "-- └───────────────────┘",
+    }, "\n")
+    local old = parse(
+      "local map = vim.keymap.set\n\n"
+        .. box
+        .. '\nmap("n","a","b")\n\n'
+        .. box:gsub("General", "Splits")
+        .. '\nmap("n","c","d")'
+    )
+    local new = parse(SRC)
+    eq(
+      vim.tbl_map(function(c)
+        return c.title
+      end, new.categories),
+      vim.tbl_map(function(c)
+        return c.title
+      end, old.categories)
+    )
+    eq(
+      { "general", "splits" },
+      vim.tbl_map(function(e)
+        return e.category
+      end, old.entries)
+    )
+    eq({ "local map = vim.keymap.set" }, old.preamble)
+  end)
+
+  it("regenerates old box headers as the one-line header, same categories", function()
+    local box = "-- ┌─────┐\n-- │ General │\n-- └─────┘"
+    local t1 = parse(box .. '\nmap("n","a","b")')
+    local out = generate.strip_header(generate.render(t1))
+    ok(out:find("-- [General]", 1, true), out)
+    ok(not out:find("┌", 1, true), out)
+    local t2 = parse(out)
+    eq(t1.categories, t2.categories)
+    eq(t1.entries, t2.entries)
+  end)
+
+  it("import -> generate -> import is stable, with and without a subtitle", function()
+    local src = 'local map = vim.keymap.set\n\n-- [A]\nmap("n","a","b")\n\n-- [B]\n-- the b keys\n\nmap("n","c","d")\n'
+    local t1 = parse(src)
+    local out1 = generate.render(t1)
+    local t2 = parse(generate.strip_header(out1))
+    eq(t1.categories, t2.categories)
+    eq(t1.entries, t2.entries)
+    eq(out1, generate.render(t2))
+  end)
+
+  it("a bracketed word inside a normal comment is not a header", function()
+    local t = parse '-- [x] todo later\nmap("n","a","b")'
+    eq(1, #t.categories)
   end)
 
   it("keep_headers turns them into categories", function()
@@ -221,7 +293,7 @@ describe("template import: round trip through generate", function()
     local function squash(s)
       return (s:gsub("%s+", " "):gsub("^ ", ""):gsub(" $", ""))
     end
-    local without_box = out:gsub("%-%- [┌└][^\n]*\n", ""):gsub("%-%- │ Uncategorized[^\n]*\n", "")
+    local without_box = out:gsub("%-%- %[Uncategorized%]\n", "")
     eq(
       squash [[require "x" local map = vim.keymap.set -- note map("n", ";", ":", { desc = "CMD" }) map("i", "jk", "<ESC>") map({ "n", "x" }, "<leader>q", function() require("a").b() end, { desc = "q" }) for k in pairs {} do map('n', k, 'x') end]],
       squash(without_box)
@@ -231,7 +303,7 @@ describe("template import: round trip through generate", function()
   it("importing generated output gives the same template", function()
     local src = 'local map = vim.keymap.set\nmap("n", "a", "b", { desc = "x" })\n-- c\nmap("i", "d", function() end)\n'
     local t1 = parse(src)
-    local t2 = parse(generate.strip_header(generate.render(t1)), { keep_headers = false })
+    local t2 = parse(generate.strip_header(generate.render(t1)), { drop_headers = true })
     -- ids are positional and the second pass sees no new entries.
     eq(t1.entries, t2.entries)
     eq(t1.preamble, t2.preamble)

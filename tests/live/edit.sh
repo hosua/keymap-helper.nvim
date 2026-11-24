@@ -19,7 +19,7 @@ rsync -a --exclude=.git --exclude=.claude "${CFG_SRC}/" "${LIVE_TMP}/cfg/nvim/"
 smoke_start 160 44 env XDG_CONFIG_HOME="${LIVE_TMP}/cfg" XDG_DATA_HOME="${LIVE_TMP}/data" \
   XDG_STATE_HOME="${LIVE_TMP}/state" nvim
 sleep 3
-smoke_keys ':KeymapHelper import keep_headers' Enter
+smoke_keys ':KeymapHelper import' Enter
 sleep 1
 chk smoke_expect 'imported [0-9]+ maps'
 smoke_keys ':KeymapHelper generate!' Enter

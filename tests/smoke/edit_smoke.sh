@@ -20,7 +20,7 @@ fail=0
 chk() { "$@" || fail=1; }
 
 smoke_start 140 40 "${env_xdg[@]}" nvim --clean -u tests/smoke/init.lua
-smoke_keys ':KeymapHelper import' Enter
+smoke_keys ':KeymapHelper import drop_headers' Enter
 chk smoke_expect 'imported [0-9]+ maps'
 smoke_keys ':KeymapHelper edit' Enter
 sleep 3

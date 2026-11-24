@@ -18,7 +18,8 @@ local M = {}
 --- @field template string|nil template path (default config `template.path`)
 --- @field target string|nil generated file (default the template's `target`, else config `template.target`)
 --- @field backups boolean|nil default config `template.backups`
---- @field keep_headers boolean|nil import: keep the file's box headers as categories
+--- @field drop_headers boolean|nil import: ignore the file's category headers (default: they become categories)
+--- @field keep_headers boolean|nil import: legacy, `false` means `drop_headers`
 --- @field confirm (fun(message: string): boolean)|nil asked before a risky overwrite; absent means "no"
 --- @field now integer|nil epoch seconds, for tests
 --- @field timeout number|nil analyze: seconds to wait for the scratch nvim
@@ -123,6 +124,7 @@ end
 local function parse_source(p, opts, source, disk)
   local cfg = require("keymap-helper.config").get()
   return import.parse(generate.strip_header(disk), {
+    drop_headers = opts.drop_headers,
     keep_headers = opts.keep_headers,
     map_functions = cfg.map_functions,
     header_pattern = cfg.header_pattern,
@@ -211,7 +213,7 @@ function M.show(opts)
 end
 
 --- What an import would build from the mappings file, without writing it.
---- `opts.keep_headers` picks the mode. Same shape as `show`, status "preview".
+--- `opts.drop_headers` picks the mode. Same shape as `show`, status "preview".
 --- @param opts KeymapHelperTemplateOpts|nil
 --- @return table|nil view, string|nil err
 function M.preview(opts)

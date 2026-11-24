@@ -45,15 +45,16 @@ describe("template generate", function()
     eq("local x = 1\n", generate.strip_header "local x = 1\n")
   end)
 
-  it("draws the box 80 columns wide with the title inside", function()
-    local box = vim.split(generate.box "General", "\n")
-    eq(3, #box)
-    for _, l in ipairs(box) do
-      eq(80, vim.fn.strdisplaywidth(l))
-    end
-    ok(box[2]:find("│ General ", 1, true))
+  it("writes the header as one plain ASCII line", function()
+    local h = generate.box "General"
+    eq("-- [General]", h)
+    ok(not h:find "[\128-\255]", "header must be ASCII")
     -- group_by = "header" must find it with the default pattern.
-    eq("General", box[2]:match(require("keymap-helper.config").defaults.header_pattern))
+    eq("General", h:match(require("keymap-helper.config").defaults.header_pattern))
+  end)
+
+  it("puts the subtitle on the next comment line", function()
+    eq("-- [General]\n-- keys everyone uses", generate.box("General", "keys everyone uses"))
   end)
 
   it("writes all the typed options in a fixed order", function()
