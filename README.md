@@ -334,7 +334,7 @@ reordered) and asks. After `y` it does two things:
 
 <div align="center" markdown="1">
 
-![The save summary, then the result listing both backup paths](docs/media/tui-saved.png)
+![The result after a save, listing both backup paths](docs/media/tui-saved.png)
 
 *After a save, both backups are listed*
 
