@@ -52,6 +52,12 @@ defines each key) run the same code under
 scripts/kh-template prints the template as JSON (`show`, `preview`) and applies
 a category plan from stdin (`save`); the terminal UI in tui/ uses it. Start the
 UI with `bun run tui/src/index.tsx --root DIR` (needs bun), see the README.
+In the UI, `O` opens the options screen: j/k pick a row, h/l change its value,
+<Esc> closes it. The one option is Truecolor (True or False). It defaults to True
+when $COLORTERM is truecolor or 24bit; False maps every colour to the nearest of
+xterm's 256. The choice is saved in
+$XDG_STATE_HOME/nvim/keymap-helper/tui.json. `--truecolor=true|false` overrides
+it for one run.
 
 Default key: <leader>km (normal mode). Change it with the `keymap` option,
 or set `keymap = false`. A key you already mapped is never overwritten.

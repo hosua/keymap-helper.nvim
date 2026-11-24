@@ -6,6 +6,7 @@ import { categoryOf } from "./doc.ts";
 import type { Layout } from "./layout.ts";
 import * as L from "./legend.ts";
 import { grid, type LegendItem } from "./legend.ts";
+import { OPTIONS } from "./options.ts";
 import { C, CATEGORY_COLORS, levelColor, modeColor } from "./palette.ts";
 import { changeCount } from "./plan.ts";
 import {
@@ -443,6 +444,7 @@ export function legendItems(s: State): LegendItem[] {
   if (o?.kind === "picker") return L.PICKER;
   if (o?.kind === "input") return L.INPUT;
   if (o?.kind === "result") return L.ANY_KEY;
+  if (o?.kind === "options") return L.OPTIONS;
   if (o?.kind === "confirm") return o.purpose === "quit" ? L.QUIT : L.YES_NO;
   if (s.screen === "missing") return s.sourceExists ? L.MISSING : L.MISSING_NO_SOURCE;
   return s.preview ? L.PREVIEW : L.NORMAL;
@@ -545,6 +547,7 @@ export function popup(s: State, size: { w: number; h: number }): Popup | null {
     }[o.purpose];
     return { title, color, width: maxW, rows };
   }
+  if (o.kind === "options") return optionsPopup(s, o.sel, maxW);
   if (o.kind === "result") {
     const color = levelColor(o.level);
     const rows = o.lines.flatMap((t) => wrap(t, innerW - 2)).map((t) => line(t, t.startsWith("  ") ? C.grey : C.text));
@@ -554,6 +557,34 @@ export function popup(s: State, size: { w: number; h: number }): Popup | null {
     return { title, color, width: maxW, rows };
   }
   return null;
+}
+
+/** btop-style rows: the bold title centred, the value centred below it between arrows. */
+function optionsPopup(s: State, sel: number, popupW: number): Popup {
+  const innerW = popupW - 2;
+  const centre = (segs: Seg[], bg: string): Row => {
+    const len = segs.reduce((n, g) => n + width(g.t), 0);
+    const left = Math.max(0, Math.floor((innerW - len) / 2));
+    return fit([{ t: " ".repeat(left), bg }, ...segs], innerW, bg);
+  };
+  const rows: Row[] = [];
+  OPTIONS.forEach((opt, i) => {
+    const bg = i === sel ? C.cursorFocus : C.bar;
+    const value = opt.get(s.settings);
+    const arrow = i === sel ? C.key : C.dim;
+    rows.push(centre([{ t: opt.title, fg: C.text, bold: true, bg }], bg));
+    rows.push(
+      centre(
+        [
+          { t: "←", fg: arrow, bold: true, bg },
+          { t: ` ${value} `, fg: value === "True" ? C.ok : C.warn, bold: true, bg },
+          { t: "→", fg: arrow, bold: true, bg },
+        ],
+        bg,
+      ),
+    );
+  });
+  return { title: " options ", color: C.info, width: popupW, rows };
 }
 
 // ---- missing-template screen ----------------------------------------------

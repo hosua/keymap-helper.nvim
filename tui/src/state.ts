@@ -20,6 +20,7 @@ import {
 import { rank } from "./fuzzy.ts";
 import * as H from "./history.ts";
 import { layout, type Size } from "./layout.ts";
+import { cycle, OPTIONS, type Settings } from "./options.ts";
 import { changeCount, describe, summarize, toPlan } from "./plan.ts";
 import {
   type Doc,
@@ -42,7 +43,8 @@ export type Overlay =
   | { kind: "picker"; query: string; sel: number }
   | { kind: "input"; purpose: "newcat" | "newcat-move" | "rename" | "search"; label: string; text: string }
   | { kind: "confirm"; purpose: "delete" | "quit" | "save" | "apply" | "import" | "entry"; level: Level; lines: string[]; target?: string }
-  | { kind: "result"; level: Level; lines: string[] };
+  | { kind: "result"; level: Level; lines: string[] }
+  | { kind: "options"; sel: number };
 
 export interface Message {
   text: string;
@@ -88,9 +90,11 @@ export interface State {
   ui: UI;
   busy: boolean;
   quit: boolean;
+  settings: Settings;
 }
 
 export type Effect =
+  | { type: "settings"; settings: Settings }
   | { type: "analyze" }
   | { type: "save"; plan: SavePlan }
   | { type: "preview"; keepHeaders: boolean }
@@ -133,7 +137,9 @@ function freshUI(size: Size): UI {
   };
 }
 
-export function init(loaded: Loaded | Missing, size: Size): State {
+export const DEFAULT_SETTINGS: Settings = { truecolor: true };
+
+export function init(loaded: Loaded | Missing, size: Size, settings: Settings = DEFAULT_SETTINGS): State {
   const info: Info = { ...loaded };
   if (loaded.status === "missing") {
     return {
@@ -148,6 +154,7 @@ export function init(loaded: Loaded | Missing, size: Size): State {
       ui: freshUI(size),
       busy: false,
       quit: false,
+      settings,
     };
   }
   const doc = normalize(loaded.doc);
@@ -167,6 +174,7 @@ export function init(loaded: Loaded | Missing, size: Size): State {
     ui: { ...ui, message: note },
     busy: false,
     quit: false,
+    settings,
   };
 }
 
@@ -553,6 +561,8 @@ function handleNormal(s: State, key: string): [State, Effect[]] {
       const what = key === "u" ? `undone, ${next.past.length} more to undo` : `redone, ${next.future.length} more to redo`;
       return [settle(withUI(moved, { message: note(what) }), {}), []];
     }
+    case "O":
+      return [withUI(cur, { overlay: { kind: "options", sel: 0 } }), []];
     case "escape":
       return [withUI(cur, { marks: new Set(), anchor: null, message: null }), []];
     case "C": {
@@ -796,7 +806,21 @@ function handlePicker(s: State, key: string, o: Extract<Overlay, { kind: "picker
   return [withUI(s, { overlay: { kind: "input", purpose: "newcat-move", label: "new category for the selection: ", text: "" } }), []];
 }
 
+/** Up and down pick a row, left and right cycle its value; the new settings go out as an effect so they get saved. */
+function handleOptions(s: State, key: string, o: Extract<Overlay, { kind: "options" }>): [State, Effect[]] {
+  const n = OPTIONS.length;
+  if (key === "escape" || key === "q" || key === "O" || key === "return" || key === "C-c") return [withUI(s, { overlay: null }), []];
+  if (key === "j" || key === "down") return [withUI(s, { overlay: { ...o, sel: Math.min(n - 1, o.sel + 1) } }), []];
+  if (key === "k" || key === "up") return [withUI(s, { overlay: { ...o, sel: Math.max(0, o.sel - 1) } }), []];
+  const dir = key === "l" || key === "right" ? 1 : key === "h" || key === "left" ? -1 : 0;
+  const row = OPTIONS[o.sel];
+  if (!dir || !row) return [s, []];
+  const settings = cycle(s.settings, row, dir);
+  return [{ ...s, settings }, [{ type: "settings", settings }]];
+}
+
 function handleMissing(s: State, key: string): [State, Effect[]] {
+  if (key === "O") return [withUI(s, { overlay: { kind: "options", sel: 0 } }), []];
   if (key === "q" || key === "escape" || key === "C-c") return [{ ...s, quit: true }, [{ type: "quit" }]];
   if (!s.sourceExists) return [s, []];
   if (key === "y" || key === "d") {
@@ -842,7 +866,7 @@ export function update(s: State, ev: Event): [State, Effect[]] {
       ];
     }
     case "loaded": {
-      const fresh = init(ev.loaded, s.ui.size);
+      const fresh = init(ev.loaded, s.ui.size, s.settings);
       const next: State = {
         ...fresh,
         analysis: s.analysis,
@@ -899,7 +923,7 @@ export function update(s: State, ev: Event): [State, Effect[]] {
         );
       }
       const level: Level = ev.result.generateError ? "error" : "ok";
-      const fresh = ev.loaded ? init(ev.loaded, s.ui.size) : { ...s, busy: false };
+      const fresh = ev.loaded ? init(ev.loaded, s.ui.size, s.settings) : { ...s, busy: false };
       return [
         {
           ...fresh,
@@ -921,6 +945,7 @@ export function update(s: State, ev: Event): [State, Effect[]] {
     if (o.kind === "result") return [withUI(base, { overlay: null }), []];
     if (o.kind === "confirm") return handleConfirm(base, key, o);
     if (o.kind === "input") return handleInput(base, key, o);
+    if (o.kind === "options") return handleOptions(base, key, o);
     return handlePicker(base, key, o);
   }
   if (base.screen === "missing") return handleMissing(base, key);

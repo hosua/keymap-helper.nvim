@@ -85,9 +85,34 @@ cmp -s "$(find "$cfg/lua" -name 'mappings_*.bak')" tests/fixtures/user_mappings.
 # the template had no earlier file at the first import, so its backup appears on this save only when one existed
 [ "$n_tpl" -eq 1 ] && echo "  ok    one template backup" || { echo "  FAIL  template backups: $n_tpl"; fail=1; }
 
+# Options: O opens the screen, l flips Truecolor live and saves it, esc closes.
+smoke_type O
+chk smoke_expect 'Truecolor'
+chk smoke_expect '← +True +→'
+chk smoke_expect 'change value'
+smoke_keys l
+chk smoke_expect '← +False +→'
+chk smoke_reject '← +True +→'
+state_file="$tmp/s/nvim/keymap-helper/tui.json"
+[ "$(cat "$state_file" 2>/dev/null)" = '{"truecolor":false}' ] && echo "  ok    the choice is saved in $state_file" || { echo "  FAIL  state file: $(cat "$state_file" 2>/dev/null)"; fail=1; }
+smoke_keys Escape
+sleep 1
+chk smoke_reject 'change value'
+
 # Clean quit now.
 smoke_type q
 sleep 1
 tmux -L "$SMOKE_SOCK" list-panes 2>/dev/null | grep -q . && { echo "  FAIL  the UI did not quit"; fail=1; } || echo "  ok    q quit with nothing unsaved"
+
+# A new run starts from the saved choice, and --truecolor beats it.
+smoke_start 120 36 "${env_xdg[@]}" bun tui/src/index.tsx --root "$cfg"
+sleep 2
+smoke_type O
+chk smoke_expect '← +False +→'
+smoke_stop
+smoke_start 120 36 "${env_xdg[@]}" bun tui/src/index.tsx --root "$cfg" --truecolor=true
+sleep 2
+smoke_type O
+chk smoke_expect '← +True +→'
 [ "$fail" -eq 0 ] && echo "tui smoke: ok"
 exit "$fail"

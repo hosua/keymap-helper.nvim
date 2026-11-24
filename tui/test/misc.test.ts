@@ -101,3 +101,17 @@ describe("legend grid", () => {
     }
   });
 });
+
+describe("--truecolor flag", () => {
+  test("true and false, with = or a separate value", () => {
+    expect(parseArgs(["--truecolor=false"])).toEqual({ kind: "run", args: { truecolor: false } });
+    expect(parseArgs(["--truecolor", "true"])).toEqual({ kind: "run", args: { truecolor: true } });
+  });
+  test("anything else is an error", () => {
+    expect(parseArgs(["--truecolor=maybe"])).toEqual({ kind: "error", message: "--truecolor needs true or false" });
+    expect(parseArgs(["--truecolor"])).toEqual({ kind: "error", message: "--truecolor needs true or false" });
+  });
+  test("help lists it", () => {
+    expect(help(false)).toContain("--truecolor=BOOL");
+  });
+});

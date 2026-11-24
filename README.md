@@ -263,7 +263,7 @@ plenary.nvim where the scripts can find it (see Scripts above). Install its pack
 ```bash
 (cd tui && bun install --frozen-lockfile)
 bun run tui/src/index.tsx --root $HOME/.config/nvim [--template FILE] [--target FILE] [--analysis FILE]
-    [--result FILE] [--timeout SECONDS]
+    [--result FILE] [--timeout SECONDS] [--truecolor true|false]
 tui/bin/keymap-helper-tui --root $HOME/.config/nvim     # same thing, bun shebang
 ```
 
@@ -312,6 +312,7 @@ dimmed. They can be moved but not edited, and moving one changes when it runs.
 | `P` | On a duplicate: swap precedence, so the other entry wins |
 | `D` | List the defaults your template removes |
 | `i` | Preview what `kh-import` would build; `<CR>` applies it after a confirm, `i` leaves |
+| `O` | Open the options screen |
 | `w` | Save |
 | `q`, `<C-c>` | Quit; with unsaved changes it asks |
 
@@ -398,6 +399,23 @@ the way the list scans it, and the result is handed to the UI in a temp file. A 
 whose key is no longer mapped counts as removed. That is a guess: a default that never
 loaded looks the same, and a delete followed by a new map on the same key shows as an
 override. Run `kh-template analyze` for the exact answer.
+
+### Options
+
+`O` opens the options screen. Each option is a row with its title centred and its value
+below it between arrows, like btop's options menu. `j` `k` (or the arrows) pick a row,
+`h` `l` (or left and right) change its value, `<Esc>` closes the screen. A change applies
+at once and is saved.
+
+| Option | Values | Default |
+|---|---|---|
+| Truecolor | `True`, `False` | `True` when `$COLORTERM` is `truecolor` or `24bit`, else `False` |
+
+With Truecolor `False` every colour is replaced by the nearest of xterm's 256 colours, so the
+UI stays readable on a terminal without 24-bit colour. The choice is saved in
+`$XDG_STATE_HOME/nvim/keymap-helper/tui.json` (`~/.local/state/nvim/keymap-helper/tui.json`
+by default, `$NVIM_APPNAME` replaces `nvim`). `--truecolor=true|false` on the command line
+wins over the saved choice for that run; it saves nothing unless you then change the option.
 
 ### Editing from inside Neovim
 
