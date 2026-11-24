@@ -1,7 +1,7 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
 exports[`frame at 80x24 fills the screen without overflow and shows all three panes and the legend 1`] = `
-" keymap-helper  lua/mappings.template.json -> lua/mappings.lua            saved 
+" keymap-helper  lua/mappings.template.json                    1 removed   saved 
  Categories       3  Uncategorized              1/43  Details                   
  ! Uncategorized 43   n     <leader>ff  find fi… rhs  <leader>ff                
  ■ Lsp            1   nv    <leader>fg  live gr… rhs  modes    n                
@@ -15,20 +15,20 @@ exports[`frame at 80x24 fills the screen without overflow and shows all three pa
                       n     <leader>z6  do <lea… rhs                            
                       n     <leader>z7  do <lea… rhs                            
                       n     <leader>z8  do <lea… rhs                            
-                      n     <leader>z9  do <lea… rhs                            
-                      n     <leader>z10 do <lea… rhs                            
  entries are grouped by category on load; nothing is written until you save     
- j k   move              V     range             J K   reorder entry            
- h l   pane              A     mark all          < >   reorder category         
- gg G  first, last       esc   clear marks       C     category color           
- ^d ^u half page         m     move to...        u ^r  undo, redo               
- / n N search            c     new category      i     keep_headers             
- space mark, next        r     rename            w     save                     
- v     mark              d     delete category   q     quit                     "
+ j k   move              esc   clear marks       !     conflicts only           
+ h l   pane              m     move to...        ]c [c jump conflict            
+ gg G  first, last       c     new category      o     other entry              
+ ^d ^u half page         r     rename            x     delete shadowed          
+ / n N search            d     delete category   P     swap winner              
+ space mark, next        J K   reorder entry     D     removed defs             
+ v     mark              < >   reorder category  i     keep_headers             
+ V     range             C     category color    w     save                     
+ A     mark all          u ^r  undo, redo        q     quit                     "
 `;
 
 exports[`frame at 80x24 the move picker, the save summary and the result fit and close 1`] = `
-" keymap-helper  lua/mappings.template.json -> lua/mappings.lua       ● 1 change 
+" keymap-helper  lua/mappings.template.json               1 removed   ● 1 change 
  Categories       3  Uncategorized              1/42  Details                   
  ! Uncategorized 42   nv    <leader>fg  live gr… rhs  <leader>fg                
  ■ Lsp            2   raw   local map = vim.key… raw  modes    n v              
@@ -42,11 +42,11 @@ exports[`frame at 80x24 the move picker, the save summary and the result fit and
     │                                                                      │    
     │ y yes   n no                                                         │    
     ╰──────────────────────────────────────────────────────────────────────╯    
-                      n     <leader>z10 do <lea… rhs                            
-                      n     <leader>z11 do <lea… rhs                            
                                                                                 
  y     yes                                                                      
  n esc no                                                                       
+                                                                                
+                                                                                
                                                                                 
                                                                                 
                                                                                 
@@ -55,7 +55,7 @@ exports[`frame at 80x24 the move picker, the save summary and the result fit and
 `;
 
 exports[`frame at 140x40 fills the screen without overflow and shows all three panes and the legend 1`] = `
-" keymap-helper  lua/mappings.template.json -> lua/mappings.lua                                                                        saved 
+" keymap-helper  lua/mappings.template.json -> lua/mappings.lua                                                            1 removed   saved 
  Categories                   3  Uncategorized                                          1/43  Details                                       
  ! Uncategorized             43   n     <leader>ff            find files                 rhs  <leader>ff                                    
  ■ Lsp                        1   nv    <leader>fg            live grep                  rhs  modes    n                                    
@@ -88,17 +88,17 @@ exports[`frame at 140x40 fills the screen without overflow and shows all three p
                                   n     <leader>z25           do <leader>z25             rhs                                                
                                   n     <leader>z26           do <leader>z26             rhs                                                
                                   n     <leader>z27           do <leader>z27             rhs                                                
-                                  n     <leader>z28           do <leader>z28             rhs                                                
  entries are grouped by category on load; nothing is written until you save                                                                 
- j k   move              space mark, next        m     move to...        < >   reorder category  q     quit                                 
- h l   pane              v     mark              c     new category      C     category color                                               
- gg G  first, last       V     range             r     rename            u ^r  undo, redo                                                   
- ^d ^u half page         A     mark all          d     delete category   i     keep_headers                                                 
- / n N search            esc   clear marks       J K   reorder entry     w     save                                                         "
+ j k   move              v     mark              r     rename            !     conflicts only    i     keep_headers                         
+ h l   pane              V     range             d     delete category   ]c [c jump conflict     w     save                                 
+ gg G  first, last       A     mark all          J K   reorder entry     o     other entry       q     quit                                 
+ ^d ^u half page         esc   clear marks       < >   reorder category  x     delete shadowed                                              
+ / n N search            m     move to...        C     category color    P     swap winner                                                  
+ space mark, next        c     new category      u ^r  undo, redo        D     removed defs                                                 "
 `;
 
 exports[`frame at 140x40 the move picker, the save summary and the result fit and close 1`] = `
-" keymap-helper  lua/mappings.template.json -> lua/mappings.lua                                                                   ● 1 change 
+" keymap-helper  lua/mappings.template.json -> lua/mappings.lua                                                       1 removed   ● 1 change 
  Categories                   3  Uncategorized                                          1/42  Details                                       
  ! Uncategorized             42   nv    <leader>fg            live grep                  rhs  <leader>fg                                    
  ■ Lsp                        2   raw   local map = vim.keymap.set                       raw  modes    n v                                  
@@ -131,11 +131,221 @@ exports[`frame at 140x40 the move picker, the save summary and the result fit an
                                   n     <leader>z26           do <leader>z26             rhs                                                
                                   n     <leader>z27           do <leader>z27             rhs                                                
                                   n     <leader>z28           do <leader>z28             rhs                                                
-                                  n     <leader>z29           do <leader>z29             rhs                                                
                                                                                                                                             
  y     yes                                                                                                                                  
  n esc no                                                                                                                                   
                                                                                                                                             
                                                                                                                                             
+                                                                                                                                            
                                                                                                                                             "
+`;
+
+exports[`conflicts at 80x24 the top bar counts duplicates and overrides and nothing overflows 1`] = `
+" keymap-helper  lua/mappings.tem…  1 duplicate   1 override   1 removed   saved 
+ Categories       3  Uncategorized               0/0  Details                   
+ ✓ Uncategorized  0  nothing here yet. Press m on en… category Uncategorized    
+ ■ Nav            3                                   entries none              
+ ■ Git            2                                                             
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+                                                                                
+ j k   move              esc   clear marks       !     conflicts only           
+ h l   pane              m     move to...        ]c [c jump conflict            
+ gg G  first, last       c     new category      o     other entry              
+ ^d ^u half page         r     rename            x     delete shadowed          
+ / n N search            d     delete category   P     swap winner              
+ space mark, next        J K   reorder entry     D     removed defs             
+ v     mark              < >   reorder category  i     keep_headers             
+ V     range             C     category color    w     save                     
+ A     mark all          u ^r  undo, redo        q     quit                     "
+`;
+
+exports[`conflicts at 80x24 the override chip shows old -> new, fitted to the row 1`] = `
+" keymap-helper  lua/mappings.tem…  1 duplicate   1 override   1 removed   saved 
+ Categories       3  Nav                         1/3  Details                   
+ ✓ Uncategorized  0   n     <leader>h   ~ Teles… rhs  <leader>h                 
+ ■ Nav            3   n     <leader>x   ! shado… rhs  modes    n                
+ ■ Git            2   n     <leader>q   do <lea… rhs  category Nav              
+                                                      desc     telescope help p…
+                                                      action   rhs :<leader>h   
+                                                      OVERRIDES a default on n  
+                                                      <leader>h: Telescope      
+                                                      help_tags                 
+                                                        from nvchad             
+                                                      ->  <leader>h: telescope  
+                                                      help page                 
+                                                      generated Lua             
+                                                                                
+ j k   move              esc   clear marks       !     conflicts only           
+ h l   pane              m     move to...        ]c [c jump conflict            
+ gg G  first, last       c     new category      o     other entry              
+ ^d ^u half page         r     rename            x     delete shadowed          
+ / n N search            d     delete category   P     swap winner              
+ space mark, next        J K   reorder entry     D     removed defs             
+ v     mark              < >   reorder category  i     keep_headers             
+ V     range             C     category color    w     save                     
+ A     mark all          u ^r  undo, redo        q     quit                     "
+`;
+
+exports[`conflicts at 80x24 a duplicate shows who wins and who is shadowed, in both entries 1`] = `
+" keymap-helper  lua/mappings.tem…  1 duplicate   1 override   1 removed   saved 
+ Categories       3  Nav                         2/3  Details                   
+ ✓ Uncategorized  0   n     <leader>h   ~ Teles… rhs  <leader>x                 
+ ■ Nav            3   n     <leader>x   ! shado… rhs  modes    n                
+ ■ Git            2   n     <leader>q   do <lea… rhs  category Nav              
+                                                      desc     first x          
+                                                      action   rhs :<leader>x   
+                                                      DUPLICATE on n <leader>x  
+                                                      > 1. nav/x1               
+                                                          shadowed by git/x2    
+                                                        2. git/x2               
+                                                          wins                  
+                                                      later in the file wins.   
+                                                      o other, x delete         
+                                                                                
+ j k   move              esc   clear marks       !     conflicts only           
+ h l   pane              m     move to...        ]c [c jump conflict            
+ gg G  first, last       c     new category      o     other entry              
+ ^d ^u half page         r     rename            x     delete shadowed          
+ / n N search            d     delete category   P     swap winner              
+ space mark, next        J K   reorder entry     D     removed defs             
+ v     mark              < >   reorder category  i     keep_headers             
+ V     range             C     category color    w     save                     
+ A     mark all          u ^r  undo, redo        q     quit                     "
+`;
+
+exports[`conflicts at 140x40 the top bar counts duplicates and overrides and nothing overflows 1`] = `
+" keymap-helper  lua/mappings.template.json -> lua/mappings.lua                                 1 duplicate   1 override   1 removed   saved 
+ Categories                   3  Uncategorized                                           0/0  Details                                       
+ ✓ Uncategorized              0  nothing here yet. Press m on entries in another category.    category Uncategorized                        
+ ■ Nav                        3                                                               entries none                                  
+ ■ Git                        2                                                                                                             
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+ j k   move              v     mark              r     rename            !     conflicts only    i     keep_headers                         
+ h l   pane              V     range             d     delete category   ]c [c jump conflict     w     save                                 
+ gg G  first, last       A     mark all          J K   reorder entry     o     other entry       q     quit                                 
+ ^d ^u half page         esc   clear marks       < >   reorder category  x     delete shadowed                                              
+ / n N search            m     move to...        C     category color    P     swap winner                                                  
+ space mark, next        c     new category      u ^r  undo, redo        D     removed defs                                                 "
+`;
+
+exports[`conflicts at 140x40 the override chip shows old -> new, fitted to the row 1`] = `
+" keymap-helper  lua/mappings.template.json -> lua/mappings.lua                                 1 duplicate   1 override   1 removed   saved 
+ Categories                   3  Nav                                                     1/3  Details                                       
+ ✓ Uncategorized              0   n     <leader>h             ~ Telescope help_tags -> … rhs  <leader>h                                     
+ ■ Nav                        3   n     <leader>x             ! shadowed by git/x2       rhs  modes    n                                    
+ ■ Git                        2   n     <leader>q             do <leader>q               rhs  category Nav                                  
+                                                                                              desc     telescope help page                  
+                                                                                              action   rhs :<leader>h                       
+                                                                                              OVERRIDES a default on n                      
+                                                                                              <leader>h: Telescope help_tags                
+                                                                                                from nvchad                                 
+                                                                                              ->  <leader>h: telescope help page            
+                                                                                              generated Lua                                 
+                                                                                              map("n", "<leader>h", ":<leader>h")           
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+ j k   move              v     mark              r     rename            !     conflicts only    i     keep_headers                         
+ h l   pane              V     range             d     delete category   ]c [c jump conflict     w     save                                 
+ gg G  first, last       A     mark all          J K   reorder entry     o     other entry       q     quit                                 
+ ^d ^u half page         esc   clear marks       < >   reorder category  x     delete shadowed                                              
+ / n N search            m     move to...        C     category color    P     swap winner                                                  
+ space mark, next        c     new category      u ^r  undo, redo        D     removed defs                                                 "
+`;
+
+exports[`conflicts at 140x40 a duplicate shows who wins and who is shadowed, in both entries 1`] = `
+" keymap-helper  lua/mappings.template.json -> lua/mappings.lua                                 1 duplicate   1 override   1 removed   saved 
+ Categories                   3  Nav                                                     2/3  Details                                       
+ ✓ Uncategorized              0   n     <leader>h             ~ Telescope help_tags -> … rhs  <leader>x                                     
+ ■ Nav                        3   n     <leader>x             ! shadowed by git/x2       rhs  modes    n                                    
+ ■ Git                        2   n     <leader>q             do <leader>q               rhs  category Nav                                  
+                                                                                              desc     first x                              
+                                                                                              action   rhs :<leader>x                       
+                                                                                              DUPLICATE on n <leader>x                      
+                                                                                              > 1. nav/x1                                   
+                                                                                                  shadowed by git/x2                        
+                                                                                                2. git/x2                                   
+                                                                                                  wins                                      
+                                                                                              later in the file wins. o other, x delete     
+                                                                                              shadowed, P swap                              
+                                                                                              generated Lua                                 
+                                                                                              map("n", "<leader>x", ":<leader>x")           
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+                                                                                                                                            
+ j k   move              v     mark              r     rename            !     conflicts only    i     keep_headers                         
+ h l   pane              V     range             d     delete category   ]c [c jump conflict     w     save                                 
+ gg G  first, last       A     mark all          J K   reorder entry     o     other entry       q     quit                                 
+ ^d ^u half page         esc   clear marks       < >   reorder category  x     delete shadowed                                              
+ / n N search            m     move to...        C     category color    P     swap winner                                                  
+ space mark, next        c     new category      u ^r  undo, redo        D     removed defs                                                 "
 `;

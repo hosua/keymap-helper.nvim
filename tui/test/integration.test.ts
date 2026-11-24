@@ -6,6 +6,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, 
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createBridge, PLUGIN_ROOT } from "../src/bridge.ts";
+import { analyze } from "../src/conflicts.ts";
 import { init, type State, update } from "../src/state.ts";
 import type { Loaded } from "../src/types.ts";
 import { press, typed } from "./helpers.ts";
@@ -175,5 +176,43 @@ describe("import, categorize, save, generate", () => {
     expect(m.status === "missing" && m.source_exists).toBe(false);
     await Bun.write(join(root, "lua/mappings.template.json"), "{ nope");
     await expect(bridge.show()).rejects.toThrow(/not valid JSON/);
+  });
+});
+
+describe("analysis and delete through the real scripts", () => {
+  test("analyze reports the fixture's override of <leader>h, and a deleted entry leaves the template", async () => {
+    const root = newRoot("analyze");
+    // A tiny config with a defaults file on the runtimepath, standing in for NvChad.
+    mkdirSync(join(root, "fake/lua/nvchad"), { recursive: true });
+    Bun.write(
+      join(root, "fake/lua/nvchad/mappings.lua"),
+      'vim.keymap.set("n", "<leader>h", "<cmd>NvDefault<CR>", { desc = "default help" })\n',
+    );
+    Bun.write(
+      join(root, "init.lua"),
+      'vim.g.mapleader = " "\nvim.opt.rtp:append(vim.fn.stdpath("config") .. "/fake")\nvim.schedule(function() pcall(require, "mappings") end)\n',
+    );
+    const bridge = createBridge({ root, env, timeout: 60 });
+    await bridge.importTemplate(false);
+    const loaded = (await bridge.show()) as Loaded;
+    const snap = await bridge.analyze();
+    expect(snap.source).toBe("replay");
+    const found = analyze(loaded.doc, snap);
+    const h = loaded.doc.entries.find((e) => e.lhs === "<leader>h");
+    expect(h).toBeDefined();
+    expect(found.byEntry.get(h?.id ?? "")?.overrides[0]?.old.desc).toBe("default help");
+
+    // x on a duplicate: build one by hand, then save with the delete.
+    const s0 = init(loaded, { w: 100, h: 30 });
+    const victim = loaded.doc.entries.find((e) => e.kind === "map");
+    expect(victim).toBeDefined();
+    const doc = { ...s0.h.present, entries: s0.h.present.entries.filter((e) => e.id !== victim?.id) };
+    const { toPlan } = await import("../src/plan.ts");
+    const plan = toPlan(doc, s0.base);
+    expect(plan.delete).toEqual([victim?.id ?? ""]);
+    await bridge.save(plan);
+    const after = (await bridge.show()) as Loaded;
+    expect(after.doc.entries.some((e) => e.id === victim?.id)).toBe(false);
+    expect(after.doc.entries).toHaveLength(loaded.doc.entries.length - 1);
   });
 });

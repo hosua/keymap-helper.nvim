@@ -61,16 +61,19 @@ SPECS.template = {
     "kh-template show [OPTIONS]",
     "kh-template preview [--keep-headers] [OPTIONS]",
     "kh-template save [OPTIONS] < plan.json",
+    "kh-template analyze [--timeout=SECONDS] [OPTIONS]",
   },
   commands = {
     { "show", "print the template and the Lua line of every map" },
     { "preview", "print what an import would build, writing nothing" },
     { "save", "apply a plan read from stdin to the template (old file backed up)" },
+    { "analyze", "start your config in a scratch nvim and list who defines each key" },
   },
-  positional = { "show", "preview", "save" },
+  positional = { "show", "preview", "save", "analyze" },
   skip = { ["--yes"] = true, ["--json"] = true },
   flags = {
     { long = "--keep-headers", desc = "preview: keep the file's box headers as categories" },
+    { long = "--timeout", value = "seconds", arg = "SECONDS", desc = "analyze: give up after this long (default 30)" },
   },
   examples = {
     {
@@ -79,6 +82,10 @@ SPECS.template = {
     },
     { "kh-template preview --keep-headers" },
     { 'echo \'{"categories":[...],"order":[...]}\' | kh-template save' },
+    {
+      "kh-template analyze --root=$HOME/.config/nvim",
+      '{"status":"ok","source":"replay","keys":[...],"counts":{"duplicates":2,"overrides":5,"removed":3}}',
+    },
   },
 }
 
@@ -208,6 +215,8 @@ function M.completion(cmd, shell, plugin_root)
         action = ":file:_files"
       elseif f.value == "shell" then
         action = ":shell:(bash zsh fish)"
+      elseif f.value == "seconds" then
+        action = ":seconds:"
       end
       local names = f.short and ("{%s,%s}"):format(f.short, f.long) or f.long
       out[#out + 1] = ("  '%s[%s]%s' \\"):format(names, desc, action):gsub("^  '({.-})", "  %1'")
@@ -225,6 +234,8 @@ function M.completion(cmd, shell, plugin_root)
         line = line .. " -r -a '(__fish_complete_directories)'"
       elseif f.value == "file" then
         line = line .. " -r -F"
+      elseif f.value == "seconds" then
+        line = line .. " -r -f"
       end
       out[#out + 1] = line .. (" -d '%s'"):format((f.desc:gsub("'", "")))
     end
@@ -330,9 +341,16 @@ function M.run_template(args, tpl, name)
     target = args.target,
     keep_headers = args.keep_headers,
     backups = (args.no_backup and false) or nil,
+    timeout = args.timeout and tonumber(args.timeout) or nil,
   }
   local res, err
-  if args.sub == "show" then
+  if args.sub == "analyze" then
+    if args.timeout and not opts.timeout then
+      io.stderr:write(name .. ": --timeout needs a number of seconds\ntry `" .. name .. " --help`\n")
+      return 2
+    end
+    res, err = tpl.analyze(opts)
+  elseif args.sub == "show" then
     res, err = tpl.show(opts)
   elseif args.sub == "preview" then
     res, err = tpl.preview(opts)
@@ -344,7 +362,7 @@ function M.run_template(args, tpl, name)
     end
     res, err = tpl.save_plan(plan, opts)
   else
-    io.stderr:write(name .. ": say what to do: show, preview or save\ntry `" .. name .. " --help`\n")
+    io.stderr:write(name .. ": say what to do: show, preview, save or analyze\ntry `" .. name .. " --help`\n")
     return 2
   end
   if not res then

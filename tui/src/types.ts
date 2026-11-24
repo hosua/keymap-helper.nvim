@@ -58,6 +58,35 @@ export interface Missing extends Info {
 export interface SavePlan {
   categories: { id: string; title: string; new?: boolean }[];
   order: { id: string; category: string }[];
+  /** Map entries to drop from the template. They are not in `order`. */
+  delete?: string[];
+}
+
+/** One definition of a key, as `kh-template analyze` reports it. */
+export interface Def {
+  /** `default:nvchad`, `template:<entry id>`, `template:raw`, `plugin:<name>`, `config:<file>` */
+  source: string;
+  desc?: string;
+  summary?: string;
+  /** Set on a removed definition: who deleted it. */
+  by?: string;
+}
+
+export interface KeyDefs {
+  mode: string;
+  lhs: string;
+  defs: Def[];
+  removed: Def[];
+}
+
+/** What `kh-template analyze` prints, and what `:KeymapHelper edit` hands over. */
+export interface Snapshot {
+  status: "ok" | "partial";
+  source: "replay" | "static";
+  leader?: string;
+  keys: KeyDefs[];
+  error?: string;
+  note?: string;
 }
 
 export interface SaveResult {
@@ -70,6 +99,6 @@ export interface SaveResult {
   generateError?: string;
 }
 
-export type Level = "info" | "ok" | "warn" | "error";
+export type Level = "info" | "ok" | "warn" | "error" | "dim";
 
 export const UNCATEGORIZED = "uncategorized";

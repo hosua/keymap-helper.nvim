@@ -1,8 +1,10 @@
 // Entry point: bun run tui/src/index.tsx --root DIR [--template FILE]
+
+import { writeFileSync } from "node:fs";
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import { help, parseArgs } from "./args.ts";
-import { createBridge } from "./bridge.ts";
+import { createBridge, readSnapshot } from "./bridge.ts";
 import { App } from "./ui.tsx";
 
 async function main(argv: string[]): Promise<number> {
@@ -19,7 +21,26 @@ async function main(argv: string[]): Promise<number> {
     process.stderr.write("keymap-helper-tui: needs a terminal\n");
     return 2;
   }
-  const bridge = createBridge(parsed.args);
+  const { analysis, result, timeout, ...rest } = parsed.args;
+  const inner = createBridge({ ...rest, timeout: timeout ? Number(timeout) : undefined });
+  let saved = false;
+  const bridge = {
+    ...inner,
+    save: async (plan: Parameters<typeof inner.save>[0]) => {
+      const r = await inner.save(plan);
+      saved = true;
+      return r;
+    },
+  };
+  let snapshot: ReturnType<typeof readSnapshot> | null = null;
+  if (analysis) {
+    try {
+      snapshot = readSnapshot(analysis);
+    } catch (e) {
+      process.stderr.write(`keymap-helper-tui: ${e instanceof Error ? e.message : String(e)}\n`);
+      return 1;
+    }
+  }
   let initial: Awaited<ReturnType<typeof bridge.show>>;
   try {
     initial = await bridge.show();
@@ -31,8 +52,9 @@ async function main(argv: string[]): Promise<number> {
   const done = new Promise<void>((resolve) => {
     renderer.once("destroy", () => resolve());
   });
-  createRoot(renderer).render(<App initial={initial} bridge={bridge} onQuit={() => renderer.destroy()} />);
+  createRoot(renderer).render(<App initial={initial} bridge={bridge} snapshot={snapshot} onQuit={() => renderer.destroy()} />);
   await done;
+  if (result) writeFileSync(result, JSON.stringify({ saved }));
   return 0;
 }
 

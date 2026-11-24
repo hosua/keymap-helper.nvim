@@ -22,6 +22,7 @@ keypress or after 6 seconds.
 - [popup.nvim](https://github.com/hosua/popup.nvim) (the list and hint windows) and
   [plenary.nvim](https://github.com/nvim-lua/plenary.nvim), both listed as lazy.nvim
   `dependencies`
+- Optional: [bun](https://bun.sh) for the terminal UI and `:KeymapHelper edit`
 - Optional: [lazy.nvim](https://github.com/folke/lazy.nvim) (names the plugin behind lazy
   `keys` maps) and [which-key.nvim](https://github.com/folke/which-key.nvim) (names
   `<leader>x` groups when `group_by = "leader_prefix"`)
@@ -142,6 +143,7 @@ and explains mode letters and key notation. Rows are coloured by role: mode, key
 | `:KeymapHelper health` | Same as `:checkhealth keymap-helper` |
 | `:KeymapHelper import [keep_headers]` | Build the keymap template from your mappings file (see below) |
 | `:KeymapHelper generate [check]` | Write the mappings file from the template, or with `check` only say whether it is in sync |
+| `:KeymapHelper edit` | Open the terminal UI for the template in a floating terminal (needs `bun`, see below) |
 
 `import!` and `generate!` skip the yes/no question. `:KeymapHelper` completes the
 subcommands and their words.
@@ -200,9 +202,10 @@ Both run under `nvim -l`, so they use the same code as the commands:
 ```bash
 scripts/kh-import   --root=$HOME/.config/nvim [--keep-headers] [--yes]
 scripts/kh-generate --root=$HOME/.config/nvim [--check] [--yes]
+scripts/kh-template analyze --root=$HOME/.config/nvim [--timeout=SECONDS]
 ```
 
-`kh-generate --check` writes nothing and exits 1 when the file on disk differs from what
+`kh-template analyze` is described under Duplicates and overrides below. `kh-generate --check` writes nothing and exits 1 when the file on disk differs from what
 the template generates, so a hook can use it. Both scripts need
 [plenary.nvim](https://github.com/nvim-lua/plenary.nvim): they look in `$PLENARY_DIR`, the
 lazy.nvim data dir and the directory next to the plugin. Without a terminal and without
@@ -263,13 +266,14 @@ plenary.nvim where the scripts can find it (see Scripts above). Install its pack
 
 ```bash
 (cd tui && bun install --frozen-lockfile)
-bun run tui/src/index.tsx --root $HOME/.config/nvim [--template FILE] [--target FILE]
+bun run tui/src/index.tsx --root $HOME/.config/nvim [--template FILE] [--target FILE] [--timeout SECONDS]
 tui/bin/keymap-helper-tui --root $HOME/.config/nvim     # same thing, bun shebang
 ```
 
 The UI never edits a Lua file. It reads and writes the template through
 `scripts/kh-template` and generates `lua/mappings.lua` with `scripts/kh-generate`, so the
-backup, validation and generation rules exist once, in Lua. With no template yet it offers
+backup, validation and generation rules exist once, in Lua. From inside Neovim,
+`:KeymapHelper edit` opens the same UI in a floating terminal (see below). With no template yet it offers
 to import your mappings file first: `y` imports everything as Uncategorized, `h` keeps the
 file's box headers as categories.
 
@@ -304,6 +308,12 @@ dimmed. They can be moved but not edited, and moving one changes when it runs.
 | `<` `>` | Move the selected category up and down |
 | `C` | Next color for the selected category (this session only) |
 | `u`, `<C-r>` | Undo, redo (in memory) |
+| `!` | Show only entries with a duplicate or an override, again to show all |
+| `]c` `[c` | Jump to the next and previous conflicted entry, in any category (wraps around) |
+| `o` | On a duplicate: jump to the other entry on the same key |
+| `x` | On a shadowed duplicate: delete that entry, after a confirm |
+| `P` | On a duplicate: swap precedence, so the other entry wins |
+| `D` | List the defaults your template removes |
 | `i` | Preview what `kh-import --keep-headers` would build; `<CR>` applies it after a confirm, `i` leaves |
 | `w` | Save |
 | `q`, `<C-c>` | Quit; with unsaved changes it asks |
@@ -322,10 +332,98 @@ scroll with the wheel.
 
 </div>
 
+### Duplicates and overrides
+
+The UI shows, for every key an entry binds, what else binds it. Only global maps count:
+buffer-local maps (`buffer = true`, an LSP `on_attach`) and lazy.nvim `keys` specs are not
+looked at, and a `:map` command in a raw block is not seen.
+
+- **Duplicate (red).** Two template entries bind the same mode and lhs. The one that comes
+  later in the generated file runs later and wins. Both rows turn red: the winner reads
+  `! wins`, the other `! shadowed by <category>/<id>`, and the details pane lists the group
+  in the order it runs. `o` jumps to the other entry, `x` deletes the shadowed one after a
+  confirm, `P` moves the cursor's entry right after the winner (or, on the winner, right
+  before the other one) so the other side wins. If the two sit in different categories, `P`
+  moves the entry into the other's category, because the generated order follows
+  categories. Nothing is ever deleted without the confirm, and nothing reaches disk until
+  you save (`u` undoes any of it). The warning is recomputed locally after every edit.
+- **Override of a default (yellow).** A template entry binds a key that something else bound
+  before the template ran, NvChad's defaults for instance. This is not a mistake, so it is
+  not red and not called redundant. The row shows `~ <old> -> <new>` where the description
+  goes (cut with an ellipsis when the pane is narrow), and the details pane has the whole
+  thing: `<leader>h: Telescope help_tags` over `-> <leader>h: telescope help page`, with the
+  source of the old map.
+- **Removed defaults (dim).** Defaults that the template deletes with `vim.keymap.del` in a
+  raw block. They are shown, never editable: `D` lists them, the top bar counts them, and an
+  entry that binds the key again says so in its details. A delete followed by a new map on
+  the same key is not counted as an override.
+
+The top bar counts them (`1 duplicate`, `2 overrides`, `3 removed`), and the red and
+yellow are the same ones the rest of the UI uses for danger and warning. A spinner row
+`analysing keymaps…` shows while the defaults are being found. If that fails or times out
+the UI says why in a dim note and keeps working: duplicates only need the template, so they
+still show.
+
+<div align="center" markdown="1">
+
+![An override of a default in yellow and a duplicate in red, with the counts in the top bar](docs/media/tui-conflicts.png)
+
+*The override of NvChad's `<leader>h` and a duplicate `<leader>gb`*
+
+</div>
+
+<div align="center" markdown="1">
+
+![The details of a duplicate: which entry wins and which is shadowed](docs/media/tui-duplicate.png)
+
+*Which of two entries on one key wins*
+
+</div>
+
+Where the defaults come from depends on how the UI was started.
+
+`kh-template analyze` (what the UI runs when you start it yourself) starts your config in a
+scratch `nvim --headless`, records every global `vim.keymap.set` / `vim.keymap.del` /
+`nvim_set_keymap` call while it loads, runs the file the template generates on top, and
+prints JSON: per mode and lhs the definitions in the order they take effect, each with its
+source (`default:nvchad`, `template:<entry id>`, `template:raw`, `plugin:<name>`,
+`config:<file>`), desc and a summary of the rhs or function, and the removed ones. It
+is a normal start of your config, so it can do what your config does at startup. For a
+run that touches nothing of yours, point `XDG_DATA_HOME`, `XDG_STATE_HOME` and
+`XDG_CACHE_HOME` at throwaway directories that still reach the plugins your config needs.
+It runs with `-i NONE -n`, so no shada or swap file is written. It gives up after
+`--timeout` seconds (default 30) and says that your config did not finish starting.
+
+`:KeymapHelper edit` does not start a scratch nvim. The running session cannot see a
+default the template already replaced, so it reads them as text instead: every section of
+your config with `runtime_files` (the NvChad defaults file in the usual setup) is scanned
+the way the list scans it, and the result is handed to the UI in a temp file. A default
+whose key is no longer mapped counts as removed. That is a guess: a default that never
+loaded looks the same, and a delete followed by a new map on the same key shows as an
+override. Run `kh-template analyze` for the exact answer.
+
+### Editing from inside Neovim
+
+`:KeymapHelper edit` opens the UI in a floating terminal made by popup.nvim, with
+`--root` set to your config directory. It needs `bun` on your `PATH` and the UI's packages
+installed (`cd tui && bun install`); without either it says so in a popup. `q` in the UI
+(or the UI exiting) closes the float. If you saved, a notice says the template and the
+mappings file were written. Nothing is reloaded for you. Restart Neovim to load them.
+`:source lua/mappings.lua` re-applies the maps but keeps the ones you deleted, and a bare
+`vim.keymap.del` in a raw block raises E31 the second time it runs.
+
+<div align="center" markdown="1">
+
+![The terminal UI in a floating terminal over a Neovim buffer](docs/media/edit-float.png)
+
+*`:KeymapHelper edit`*
+
+</div>
+
 ### Saving
 
-`w` shows what will change (entries moved, categories added, renamed or deleted, entries
-reordered) and asks. After `y` it does two things:
+`w` shows what will change (entries moved or deleted, categories added, renamed or
+deleted, entries reordered) and asks. After `y` it does two things:
 
 1. Writes the template through `kh-template save`. The old template is copied to
    `mappings.template_<YYYY_MM_DD_hh:mm:ss>.bak` next to it.

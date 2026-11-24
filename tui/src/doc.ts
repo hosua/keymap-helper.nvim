@@ -98,3 +98,26 @@ export function isGrouped(doc: Doc): boolean {
   const n = normalize(doc);
   return n.entries.every((e, i) => e.id === doc.entries[i]?.id) && n.categories[0]?.id === doc.categories[0]?.id;
 }
+
+/** Drop entries by id. */
+export function removeEntries(doc: Doc, ids: ReadonlySet<string>): Doc {
+  if (!doc.entries.some((e) => ids.has(e.id))) return doc;
+  return { categories: doc.categories, entries: doc.entries.filter((e) => !ids.has(e.id)) };
+}
+
+/**
+ * Put one entry right before or after another, in the other's category. The
+ * generated file runs entries in this order, so this decides which of two
+ * entries on the same key wins.
+ */
+export function placeNear(doc: Doc, id: string, anchor: string, where: "before" | "after"): Doc {
+  const moving = doc.entries.find((e) => e.id === id);
+  const target = doc.entries.find((e) => e.id === anchor);
+  if (!moving || !target || id === anchor) return doc;
+  const rest = doc.entries.filter((e) => e.id !== id);
+  const at = rest.findIndex((e) => e.id === anchor) + (where === "after" ? 1 : 0);
+  const placed = { ...moving, category: target.category };
+  const entries = [...rest.slice(0, at), placed, ...rest.slice(at)];
+  const same = entries.every((e, i) => e === doc.entries[i]);
+  return same ? doc : { categories: doc.categories, entries };
+}

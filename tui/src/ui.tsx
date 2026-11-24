@@ -20,7 +20,7 @@ import {
   topBar,
 } from "./rows.ts";
 import { categoryAt, docOf, type Effect, type Event, entriesIn, init, type State, update } from "./state.ts";
-import type { Loaded, Missing } from "./types.ts";
+import type { Loaded, Missing, Snapshot } from "./types.ts";
 
 function Line({ row }: { row: Row }) {
   return (
@@ -56,7 +56,13 @@ function Rows({ rows, onClickRow }: { rows: Row[]; onClickRow?: (i: number) => v
 async function runEffect(fx: Effect, bridge: Bridge, send: (ev: Event) => void, onQuit: () => void) {
   try {
     if (fx.type === "quit") onQuit();
-    else if (fx.type === "preview") send({ type: "previewed", loaded: await bridge.preview(fx.keepHeaders) });
+    else if (fx.type === "analyze") {
+      try {
+        send({ type: "analyzed", snapshot: await bridge.analyze() });
+      } catch (e) {
+        send({ type: "analysis-failed", message: e instanceof Error ? e.message : String(e) });
+      }
+    } else if (fx.type === "preview") send({ type: "previewed", loaded: await bridge.preview(fx.keepHeaders) });
     else if (fx.type === "reload") send({ type: "loaded", loaded: (await bridge.show()) as Loaded });
     else if (fx.type === "import") {
       const text = await bridge.importTemplate(fx.keepHeaders);
@@ -74,9 +80,11 @@ export interface AppProps {
   initial: Loaded | Missing;
   bridge: Bridge;
   onQuit: () => void;
+  /** A ready analysis; without one the app asks the bridge for it. */
+  snapshot?: Snapshot | null;
 }
 
-export function App({ initial, bridge, onQuit }: AppProps) {
+export function App({ initial, bridge, onQuit, snapshot }: AppProps) {
   const { width, height } = useTerminalDimensions();
   const [state, setState] = useState<State>(() => init(initial, { w: width, h: height }));
   const ref = useRef(state);
@@ -99,6 +107,17 @@ export function App({ initial, bridge, onQuit }: AppProps) {
   useEffect(() => {
     send({ type: "resize", size: { w: width, h: height } });
   }, [width, height, send]);
+
+  useEffect(() => {
+    send(snapshot ? { type: "analyzed", snapshot } : { type: "analysis-start" });
+  }, [snapshot, send]);
+
+  const analysing = state.analysis.status === "running";
+  useEffect(() => {
+    if (!analysing) return;
+    const t = setInterval(() => send({ type: "tick" }), 120);
+    return () => clearInterval(t);
+  }, [analysing, send]);
 
   const size = { w: width, h: height };
   if (width < MIN_W || height < MIN_H) {
