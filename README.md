@@ -266,7 +266,8 @@ plenary.nvim where the scripts can find it (see Scripts above). Install its pack
 
 ```bash
 (cd tui && bun install --frozen-lockfile)
-bun run tui/src/index.tsx --root $HOME/.config/nvim [--template FILE] [--target FILE] [--timeout SECONDS]
+bun run tui/src/index.tsx --root $HOME/.config/nvim [--template FILE] [--target FILE] [--analysis FILE]
+    [--result FILE] [--timeout SECONDS]
 tui/bin/keymap-helper-tui --root $HOME/.config/nvim     # same thing, bun shebang
 ```
 
@@ -351,8 +352,8 @@ looked at, and a `:map` command in a raw block is not seen.
   before the template ran, NvChad's defaults for instance. This is not a mistake, so it is
   not red and not called redundant. The row shows `~ <old> -> <new>` where the description
   goes (cut with an ellipsis when the pane is narrow), and the details pane has the whole
-  thing: `<leader>h: Telescope help_tags` over `-> <leader>h: telescope help page`, with the
-  source of the old map.
+  thing: NvChad's `<leader>h: terminal new horizontal term` over
+  `-> <leader>h: telescope help page`, with the source of the old map under the first line.
 - **Removed defaults (dim).** Defaults that the template deletes with `vim.keymap.del` in a
   raw block. They are shown, never editable: `D` lists them, the top bar counts them, and an
   entry that binds the key again says so in its details. A delete followed by a new map on
@@ -391,7 +392,7 @@ source (`default:nvchad`, `template:<entry id>`, `template:raw`, `plugin:<name>`
 is a normal start of your config, so it can do what your config does at startup. For a
 run that touches nothing of yours, point `XDG_DATA_HOME`, `XDG_STATE_HOME` and
 `XDG_CACHE_HOME` at throwaway directories that still reach the plugins your config needs.
-It runs with `-i NONE -n`, so no shada or swap file is written. It gives up after
+It runs with `-i NONE -n`, so no shada or swap file is written. Errors your config printed while loading (an `error()` in `init.lua`, say) come back as a `warnings` list, and the UI shows the first one as a dim `analysis incomplete: ...` note (a yellow one with the replay error when the generated file stopped too). It gives up after
 `--timeout` seconds (default 30) and says that your config did not finish starting.
 
 `:KeymapHelper edit` does not start a scratch nvim. The running session cannot see a

@@ -159,3 +159,48 @@ describe("live snapshot", function()
     eq("second default", by["<C-F10>"].removed[1].desc)
   end)
 end)
+
+describe("conflicts: canon", function()
+  it("folds the spellings of one key together", function()
+    eq(conflicts.canon "<C-j>", conflicts.canon "<NL>")
+    eq("<C-J>", conflicts.canon "<C-j>")
+    eq(conflicts.canon "<C-m>", conflicts.canon "<CR>")
+    eq(conflicts.canon "<C-h>", conflicts.canon "<BS>")
+    eq(conflicts.canon "<C-J>", conflicts.canon "<c-j>")
+    ok(conflicts.canon "<C-j>" ~= conflicts.canon "<C-k>")
+  end)
+
+  it("matches what nvim lists for a map defined with <C-j> or <C-m>", function()
+    vim.keymap.set("i", "<C-j>", "<Nop>")
+    vim.keymap.set("n", "<C-m>", "<Nop>")
+    local seen = {}
+    for _, mode in ipairs { "i", "n" } do
+      for _, m in ipairs(vim.api.nvim_get_keymap(mode)) do
+        seen[mode .. conflicts.canon(m.lhs)] = true
+      end
+    end
+    vim.keymap.del("i", "<C-j>")
+    vim.keymap.del("n", "<C-m>")
+    ok(seen["i" .. conflicts.canon "<C-j>"], "i <C-j>")
+    ok(seen["n" .. conflicts.canon "<C-m>"], "n <C-m>")
+  end)
+
+  it("does not report a scanned <C-j> default as removed while it is mapped", function()
+    local live = require "keymap-helper.template.live"
+    local dir = tmpdir()
+    vim.fn.mkdir(dir .. "/lua/ctrldefaults", "p")
+    vim.fn.writefile({
+      'map("i", "<C-j>", "<Down>", { desc = "move down" })',
+      'map("n", "<C-m>", "<Nop>", { desc = "enter" })',
+    }, dir .. "/lua/ctrldefaults/mappings.lua")
+    vim.opt.runtimepath:append(dir)
+    vim.keymap.set("i", "<C-j>", "<Down>")
+    vim.keymap.set("n", "<C-m>", "<Nop>")
+    local cfg = vim.deepcopy(require("keymap-helper.config").get())
+    cfg.sections = { { title = "D", runtime_files = { "lua/ctrldefaults/mappings.lua" } } }
+    local snap = live.snapshot(cfg)
+    vim.keymap.del("i", "<C-j>")
+    vim.keymap.del("n", "<C-m>")
+    eq(0, snap.counts.removed)
+  end)
+end)

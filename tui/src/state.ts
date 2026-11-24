@@ -825,7 +825,12 @@ export function update(s: State, ev: Event): [State, Effect[]] {
       return s.analysis.status === "running" ? [{ ...s, analysis: { status: "running", frame: s.analysis.frame + 1 } }, []] : [s, []];
     case "analyzed": {
       const partial = ev.snapshot.status === "partial";
-      const text = partial ? `analysis incomplete: ${ev.snapshot.error ?? "the generated file stopped early"}` : (ev.snapshot.note ?? null);
+      const warned = ev.snapshot.warnings?.[0];
+      const text = partial
+        ? `analysis incomplete: ${ev.snapshot.error ?? "the generated file stopped early"}`
+        : warned
+          ? `analysis incomplete: ${warned}`
+          : (ev.snapshot.note ?? null);
       const message = s.ui.message ?? (text ? note(text, partial ? "warn" : "dim") : null);
       return [settle(withUI({ ...s, analysis: { status: "done", snapshot: ev.snapshot } }, { message })), []];
     }

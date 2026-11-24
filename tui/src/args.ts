@@ -43,6 +43,7 @@ export function help(color: boolean): string {
   return `${[
     b("USAGE"),
     "  $ keymap-helper-tui [--root=DIR] [--template=FILE] [--target=FILE] [--analysis=FILE]",
+    "                    [--result=FILE] [--timeout=SECONDS]",
     "  $ bun run tui/src/index.tsx --root DIR",
     "",
     "sort the keymaps of a keymap-helper template into categories",

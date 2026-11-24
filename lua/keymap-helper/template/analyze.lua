@@ -111,6 +111,7 @@ function M.run(args)
     keys = built.keys,
     counts = built.counts,
     error = out.error,
+    warnings = (out.warnings and #out.warnings > 0) and out.warnings or nil,
   }
 end
 

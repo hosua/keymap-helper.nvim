@@ -10,13 +10,23 @@
 // Buffer-local entries and lazy.nvim `keys` are not looked at.
 import type { Def, Doc, Entry, Snapshot } from "./types.ts";
 
+// The same keys the Lua side folds together (conflicts.canon).
+const ALIAS: Record<string, string> = { nl: "c-j", "c-m": "cr", "c-i": "tab", "c-h": "bs", "c-[": "esc" };
+
+/** A key as the template spells it: <leader> for the leader, so lists read like the template. */
+export function displayLhs(lhs: string, leader = " "): string {
+  if (leader === " " && lhs.toLowerCase().startsWith("<space>")) return `<leader>${lhs.slice(7)}`;
+  if (leader !== "" && lhs.startsWith(leader) && lhs.length > leader.length) return `<leader>${lhs.slice(leader.length)}`;
+  return lhs;
+}
+
 /** Same key, whatever way it is spelled: <leader>, <Space> and a literal space agree. */
 export function canonLhs(lhs: string, leader = " "): string {
   return lhs.replace(/<([^<>]+)>/g, (_m, inner: string) => {
     const t = inner.toLowerCase();
     if (t === "leader") return leader;
     if (t === "space") return " ";
-    return `<${t}>`;
+    return `<${ALIAS[t] ?? t}>`;
   });
 }
 
@@ -90,7 +100,7 @@ export function analyze(doc: Doc, snap: Snapshot | null): Conflicts {
     const key = keyOf(k.mode, k.lhs, leader);
     const defs = k.defs.filter(outside);
     if (defs.length) base.set(key, defs);
-    for (const def of k.removed) removed.push({ mode: k.mode, lhs: k.lhs, def });
+    for (const def of k.removed) removed.push({ mode: k.mode, lhs: displayLhs(k.lhs, leader), def });
   }
   const removedByKey = new Map<string, Removed[]>();
   for (const r of removed) {

@@ -86,6 +86,8 @@ export interface Snapshot {
   leader?: string;
   keys: KeyDefs[];
   error?: string;
+  /** Errors the config printed while it loaded in the scratch nvim. */
+  warnings?: string[];
   note?: string;
 }
 

@@ -97,4 +97,16 @@ describe("template analyze: a fake NvChad config", function()
     eq(nil, res)
     ok(err:find("timed out", 1, true), err)
   end)
+
+  it("reports an error from init.lua as a warning and still returns a result", function()
+    local root = fake_config()
+    write(root .. "/init.lua", { 'vim.g.mapleader = " "', 'error("boom from init")' })
+    assert(template.import { root = root })
+    local res, err = template.analyze { root = root, timeout = 60 }
+    ok(res, err)
+    -- the replay may stop too, since the defaults never loaded: partial is fine
+    ok(res.status == "ok" or res.status == "partial")
+    ok(res.warnings and #res.warnings > 0, "no warnings")
+    ok(res.warnings[1]:find("boom from init", 1, true) or res.warnings[1]:find("Error", 1, true), res.warnings[1])
+  end)
 end)

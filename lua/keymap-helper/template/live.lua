@@ -42,7 +42,7 @@ function M.snapshot(cfg)
             })
           or {}
         for _, e in ipairs(entries) do
-          local lhs = vim.fn.keytrans(vim.keycode(e.lhs))
+          local lhs = conflicts.canon(e.lhs)
           for _, m in ipairs(conflicts.modes(vim.split(e.modes, ",", { plain = true, trimempty = true }))) do
             events[#events + 1] = {
               op = "set",
@@ -60,7 +60,7 @@ function M.snapshot(cfg)
   local live = {}
   for _, mode in ipairs { "n", "x", "s", "o", "i", "c", "t" } do
     for _, m in ipairs(vim.api.nvim_get_keymap(mode)) do
-      live[mode .. vim.fn.keytrans(m.lhsraw or vim.keycode(m.lhs))] = true
+      live[mode .. conflicts.canon(m.lhs)] = true
     end
   end
   local gone = {}

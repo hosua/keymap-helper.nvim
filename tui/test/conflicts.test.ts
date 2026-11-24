@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { analyze, canonLhs, expandModes, labelOf } from "../src/conflicts.ts";
+import { analyze, canonLhs, displayLhs, expandModes, labelOf } from "../src/conflicts.ts";
 import { moveEntries } from "../src/doc.ts";
 import { conflictDoc, doc, map, snapshot } from "./helpers.ts";
 
@@ -43,7 +43,7 @@ describe("analyze", () => {
   test("removed defaults are listed, and noted on an entry that binds the same key again", () => {
     const d = doc([map("v1", "<leader>v", "uncategorized")]);
     const c = analyze(d, snapshot());
-    expect(c.removed.map((r) => r.lhs)).toEqual(["<Space>v"]);
+    expect(c.removed.map((r) => r.lhs)).toEqual(["<leader>v"]);
     expect(c.byEntry.get("v1")?.removed[0]?.def.desc).toBe("terminal vertical");
     expect(c.byEntry.get("v1")?.overrides).toEqual([]);
     expect(c.order).toEqual([]);
@@ -80,5 +80,19 @@ describe("analyze", () => {
     const c = analyze(doc([map("h1", "<leader>h")]), snapshot());
     expect(c.byEntry.get("h1")?.overrides).toHaveLength(1);
     expect(c.duplicates).toBe(0);
+  });
+});
+
+describe("spelling", () => {
+  test("<C-j>, <NL> and <C-J> are one key; removed defaults read as <leader>", () => {
+    expect(canonLhs("<C-j>")).toBe(canonLhs("<NL>"));
+    expect(canonLhs("<C-m>")).toBe(canonLhs("<CR>"));
+    expect(displayLhs("<Space>n", " ")).toBe("<leader>n");
+    expect(displayLhs(",x", ",")).toBe("<leader>x");
+    expect(displayLhs("gd", " ")).toBe("gd");
+  });
+  test("the removed list uses the leader spelling", () => {
+    const c = analyze(doc([]), snapshot());
+    expect(c.removed[0]?.lhs).toBe("<leader>v");
   });
 });

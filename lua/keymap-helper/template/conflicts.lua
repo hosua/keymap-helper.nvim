@@ -45,6 +45,22 @@ function M.modes(mode)
   return out
 end
 
+-- keytrans() spells the same key two ways depending on where it came from:
+-- Ctrl-J typed as a keycode is <NL>, but a map defined with <C-j> is listed as
+-- <C-J>. Pick one spelling so both sides compare equal.
+local ALIAS = { ["<NL>"] = "<C-J>", ["<C-M>"] = "<CR>", ["<C-I>"] = "<Tab>", ["<C-H>"] = "<BS>", ["<C-[>"] = "<Esc>" }
+
+--- The one spelling of a key sequence: "<leader>x" with the current mapleader
+--- and `<Space>x` agree, and so do <C-j> and <NL>.
+--- @param lhs string
+--- @return string
+function M.canon(lhs)
+  local out = vim.fn.keytrans(vim.keycode(lhs)):gsub("<[^<>]+>", function(t)
+    return ALIAS[t]
+  end)
+  return out
+end
+
 --- @param source string
 --- @return boolean
 function M.is_template(source)

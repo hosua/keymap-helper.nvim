@@ -139,3 +139,11 @@ describe("removed defaults", () => {
     expect(s.ui.message?.text).toContain("removes no defaults");
   });
 });
+
+describe("startup warnings", () => {
+  test("an error the config printed shows as a dim incomplete note", () => {
+    const s = analysed(snapshot({ warnings: ["E5113: Error while calling lua chunk: boom"] }));
+    expect(s.ui.message?.text).toBe("analysis incomplete: E5113: Error while calling lua chunk: boom");
+    expect(s.ui.message?.level).toBe("dim");
+  });
+});

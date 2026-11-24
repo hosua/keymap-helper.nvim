@@ -11,7 +11,7 @@
 ---   KH_PROBE_ENTRIES  JSON file, [{ id, modes, lhs }] of the template's maps
 ---   KH_PROBE_OUT      where the JSON result goes
 ---
---- Output: { leader, events, error? }. See conflicts.lua for an event.
+--- Output: { leader, events, error?, warnings? }. See conflicts.lua for an event.
 --- Buffer-local maps, `:map` commands and lazy.nvim `keys` stubs are not recorded.
 local conflicts = require "keymap-helper.template.conflicts"
 
@@ -19,9 +19,7 @@ local M = {}
 
 local S
 
-local function canon(lhs)
-  return vim.fn.keytrans(vim.keycode(lhs))
-end
+local canon = conflicts.canon
 
 local real_cache = {}
 local function real(path)
@@ -180,7 +178,9 @@ end
 
 local function write_out()
   local fh = assert(io.open(S.out, "w"))
-  fh:write(vim.json.encode { leader = vim.g.mapleader or "\\", events = S.events, error = S.error })
+  fh:write(
+    vim.json.encode { leader = vim.g.mapleader or "\\", events = S.events, error = S.error, warnings = S.warnings }
+  )
   fh:close()
 end
 
@@ -199,7 +199,27 @@ local function replay()
   end
 end
 
+--- Errors the config printed while it loaded. They explain a missing leader or
+--- missing defaults, so the caller shows them as a warning.
+local function startup_errors()
+  local out = {}
+  local ok, res = pcall(vim.api.nvim_exec2, "messages", { output = true })
+  if ok then
+    for line in vim.gsplit(res.output or "", "\n", { plain = true }) do
+      if
+        line:match "^E%d+:"
+        or line:find("Error detected while processing", 1, true)
+        or line:find("Error executing", 1, true)
+      then
+        out[#out + 1] = short(line, 300)
+      end
+    end
+  end
+  return out
+end
+
 local function run()
+  S.warnings = startup_errors()
   local ok, err = pcall(replay)
   if not ok then
     S.error = tostring(err)
