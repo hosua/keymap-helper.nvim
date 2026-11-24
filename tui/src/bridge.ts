@@ -95,7 +95,7 @@ export function createBridge(opts: BridgeOptions = {}): Bridge {
       return toLoaded(parse<RawView>(await run("kh-template", ["show", ...common(opts)], opts), "kh-template show"));
     },
     async preview(keepHeaders) {
-      const args = ["preview", ...common(opts), ...(keepHeaders ? ["--keep-headers"] : [])];
+      const args = ["preview", ...common(opts), ...(keepHeaders ? [] : ["--drop-headers"])];
       return toLoaded(parse<RawView>(await run("kh-template", args, opts), "kh-template preview")) as Loaded;
     },
     async save(plan) {
@@ -117,7 +117,7 @@ export function createBridge(opts: BridgeOptions = {}): Bridge {
       return parse<Snapshot>(await run("kh-template", args, opts), "kh-template analyze");
     },
     async importTemplate(keepHeaders) {
-      const args = ["--json", "--yes", ...common(opts), ...(keepHeaders ? ["--keep-headers"] : [])];
+      const args = ["--json", "--yes", ...common(opts), ...(keepHeaders ? [] : ["--drop-headers"])];
       const r = parse<{ status: string; maps: number; raw: number }>(await run("kh-import", args, opts), "kh-import");
       return r.status === "in_sync"
         ? "the template already generates the file, nothing to import"

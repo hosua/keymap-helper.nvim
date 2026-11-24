@@ -31,11 +31,12 @@ local SPECS = {
   import = {
     summary = "build the keymap template from a mappings file",
     flags = {
-      { long = "--keep-headers", desc = "keep the file's box headers as categories (default: all uncategorized)" },
+      { long = "--drop-headers", desc = "ignore the file's category headers (default: they become categories)" },
+      { long = "--keep-headers", desc = "same as the default, kept so old scripts still run" },
     },
     examples = {
       { "kh-import --root=$HOME/.config/nvim", "imported 96 maps and 10 raw blocks into lua/mappings.template.json" },
-      { "kh-import --keep-headers --yes", "imported 96 maps and 11 raw blocks into lua/mappings.template.json" },
+      { "kh-import --drop-headers --yes", "imported 96 maps and 11 raw blocks into lua/mappings.template.json" },
     },
   },
   generate = {
@@ -59,7 +60,7 @@ SPECS.template = {
   summary = "read and write the keymap template as JSON, for the terminal UI",
   usage = {
     "kh-template show [OPTIONS]",
-    "kh-template preview [--keep-headers] [OPTIONS]",
+    "kh-template preview [--drop-headers] [OPTIONS]",
     "kh-template save [OPTIONS] < plan.json",
     "kh-template analyze [--timeout=SECONDS] [OPTIONS]",
   },
@@ -72,7 +73,8 @@ SPECS.template = {
   positional = { "show", "preview", "save", "analyze" },
   skip = { ["--yes"] = true, ["--json"] = true },
   flags = {
-    { long = "--keep-headers", desc = "preview: keep the file's box headers as categories" },
+    { long = "--drop-headers", desc = "preview: ignore the file's category headers" },
+    { long = "--keep-headers", desc = "preview: same as the default, kept for old scripts" },
     { long = "--timeout", value = "seconds", arg = "SECONDS", desc = "analyze: give up after this long (default 30)" },
   },
   examples = {
@@ -80,7 +82,7 @@ SPECS.template = {
       "kh-template show --root=$HOME/.config/nvim",
       '{"status":"ready","categories":[...],"entries":[...],"calls":{...}}',
     },
-    { "kh-template preview --keep-headers" },
+    { "kh-template preview --drop-headers" },
     { 'echo \'{"categories":[...],"order":[...]}\' | kh-template save' },
     {
       "kh-template analyze --root=$HOME/.config/nvim",
@@ -339,7 +341,7 @@ function M.run_template(args, tpl, name)
     root = args.root,
     template = args.template,
     target = args.target,
-    keep_headers = args.keep_headers,
+    drop_headers = args.drop_headers,
     backups = (args.no_backup and false) or nil,
     timeout = args.timeout and tonumber(args.timeout) or nil,
   }
@@ -405,7 +407,7 @@ function M.run(cmd, argv, plugin_root)
     root = args.root,
     template = args.template,
     target = args.target,
-    keep_headers = args.keep_headers,
+    drop_headers = args.drop_headers,
     backups = (args.no_backup and false) or nil,
     confirm = (args.yes and function()
       return true

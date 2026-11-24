@@ -44,6 +44,9 @@ local function match_call(line, patterns)
   end
 end
 
+--- Middle line of the old three-line box header, still read as a header.
+M.LEGACY_BOX = "^%-%- │%s*(.-)%s*│$"
+
 --- @param lines string[]
 --- @param opts { header_pattern: string, map_functions: string[], fallback_group: string }
 --- @return KeymapHelperScanEntry[]
@@ -53,7 +56,7 @@ function M.parse(lines, opts)
   local group = opts.fallback_group
 
   for i, line in ipairs(lines) do
-    local header = line:match(opts.header_pattern)
+    local header = line:match(opts.header_pattern) or line:match(M.LEGACY_BOX)
     if header then
       group = header
     else

@@ -41,7 +41,7 @@ end
 describe("template round trip on a copy of a real mappings.lua", function()
   it("imports every top-level map and keeps the rest", function()
     local root = config_root()
-    local res = assert(template.import { root = root })
+    local res = assert(template.import { root = root, drop_headers = true })
     eq("imported", res.status)
     eq(96, res.maps)
     ok(res.raw > 0)
@@ -77,7 +77,43 @@ describe("template round trip on a copy of a real mappings.lua", function()
     end
     ok(titles.General and titles.Splits)
     local text = table.concat(vim.fn.readfile(out), "\n")
-    ok(text:find("-- │ General ", 1, true))
+    ok(text:find("-- [General]", 1, true))
+  end)
+
+  it("keeps the file's categories by default and still matches behaviour", function()
+    local root = config_root()
+    assert(template.import { root = root })
+    local tpl = assert(template.load(root .. "/lua/mappings.template.json"))
+    ok(#tpl.categories > 3, "default import kept the headers")
+    local out = root .. "/generated/mappings.lua"
+    assert(template.generate { root = root, target = out })
+    eq(keymaps(FIXTURE), keymaps(out))
+    -- The old box headers come back as one-line headers.
+    local text = table.concat(vim.fn.readfile(out), "\n")
+    ok(text:find("-- [General]", 1, true))
+    ok(not text:find("┌", 1, true))
+    -- Importing the generated file again finds the same titles.
+    local titles = vim.tbl_map(function(c)
+      return c.title
+    end, tpl.categories)
+    local again = root .. "/again"
+    vim.fn.mkdir(again .. "/lua", "p")
+    vim.fn.writefile(vim.fn.readfile(out), again .. "/lua/mappings.lua")
+    assert(template.import { root = again })
+    local tpl2 = assert(template.load(again .. "/lua/mappings.template.json"))
+    eq(
+      titles,
+      vim.tbl_map(function(c)
+        return c.title
+      end, tpl2.categories)
+    )
+  end)
+
+  it("drop_headers collapses everything into Uncategorized", function()
+    local root = config_root()
+    assert(template.import { root = root, drop_headers = true })
+    local tpl = assert(template.load(root .. "/lua/mappings.template.json"))
+    eq(1, #tpl.categories)
   end)
 
   it("generate twice gives the same file and one backup", function()
@@ -126,7 +162,12 @@ describe("template round trip on a copy of a real mappings.lua", function()
     assert(template.import { root = root })
     local path = root .. "/lua/mappings.template.json"
     local tpl = json.decode(table.concat(vim.fn.readfile(path), "\n"))
-    tpl.entries[1].lhs = ""
+    for _, e in ipairs(tpl.entries) do
+      if e.kind == "map" then
+        e.lhs = ""
+        break
+      end
+    end
     vim.fn.writefile(vim.split(json.encode(tpl), "\n"), path)
     local res, err = template.generate {
       root = root,

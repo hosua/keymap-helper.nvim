@@ -74,7 +74,7 @@ local function template_step(step, opts)
 end
 
 --- Words each subcommand takes after its name, for completion.
-M.subargs = { import = { "keep_headers" }, generate = { "check" } }
+M.subargs = { import = { "drop_headers", "keep_headers" }, generate = { "check" } }
 
 --- @type table<string, fun(args: string[], bang: boolean)>
 M.subcommands = {
@@ -83,10 +83,10 @@ M.subcommands = {
       return true
     end }
     for _, a in ipairs(args) do
-      if a == "keep_headers" then
-        opts.keep_headers = true
-      else
-        return vim.notify(("keymap-helper: import takes keep_headers, not %q"):format(a), vim.log.levels.ERROR)
+      if a == "drop_headers" then
+        opts.drop_headers = true
+      elseif a ~= "keep_headers" then -- the default, accepted for old habits
+        return vim.notify(("keymap-helper: import takes drop_headers, not %q"):format(a), vim.log.levels.ERROR)
       end
     end
     template_step("import", opts)

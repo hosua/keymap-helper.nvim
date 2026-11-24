@@ -92,7 +92,7 @@ describe(":KeymapHelper import / generate wiring", function()
     end
     commands.subcommands.import({ "keep" }, true)
     vim.notify = notify
-    ok(seen and seen:find("import takes keep_headers", 1, true), tostring(seen))
+    ok(seen and seen:find("import takes drop_headers", 1, true), tostring(seen))
   end)
 end)
 

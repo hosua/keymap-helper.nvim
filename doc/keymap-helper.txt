@@ -20,12 +20,13 @@ COMMANDS                                              *keymap-helper-commands*
 :KeymapHelper health
         Same as `:checkhealth keymap-helper`.
 
-:KeymapHelper import[!] [keep_headers]                *keymap-helper-import*
+:KeymapHelper import[!] [drop_headers]                *keymap-helper-import*
         Build the keymap template from the `template.target` file (default
         lua/mappings.lua). Each top-level map(...) or vim.keymap.set(...)
-        call becomes an entry in category "uncategorized"; everything else
-        stays as a raw block in place. With `keep_headers` the file's box
-        headers become categories. When the template already generates the
+        call becomes an entry; everything else stays as a raw block in place.
+        The file's category headers (`-- [General]`, or the old three-line
+        box) become categories. With `drop_headers` they are ignored and every
+        entry goes in category "uncategorized". When the template already generates the
         file, nothing happens. When it does not, asks before replacing the
         template (the old one is saved). The bang skips the question.
 

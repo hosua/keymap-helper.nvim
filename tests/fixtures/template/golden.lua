@@ -8,9 +8,7 @@ require "nvchad.mappings"
 
 local map = vim.keymap.set
 
--- ┌───────────────────────────────────────────────────────────────────────────┐
--- │ General                                                                   │
--- └───────────────────────────────────────────────────────────────────────────┘
+-- [General]
 -- keys everyone uses
 
 map("n", ";", ":", { desc = "CMD enter command mode" })
@@ -21,9 +19,7 @@ map({ "n", "x" }, "<leader>q", function()
   require("configs.browser").open()
 end, { desc = "Search \"brave\"", silent = true, callback_hint = vim.g.x or 1 })
 
--- ┌───────────────────────────────────────────────────────────────────────────┐
--- │ Uncategorized                                                             │
--- └───────────────────────────────────────────────────────────────────────────┘
+-- [Uncategorized]
 
 local seen = {}
 
