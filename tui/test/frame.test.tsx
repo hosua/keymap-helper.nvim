@@ -6,6 +6,7 @@ import type { KeyInput } from "@opentui/core/testing";
 import { testRender } from "@opentui/react/test-utils";
 import { act } from "react";
 import type { Bridge } from "../src/bridge.ts";
+import type { Settings } from "../src/options.ts";
 import type { Loaded, SavePlan, SaveResult, Snapshot } from "../src/types.ts";
 import { App } from "../src/ui.tsx";
 import { conflictDoc, doc, loaded, map, raw, snapshot } from "./helpers.ts";
@@ -52,11 +53,26 @@ function fakeBridge(log: SavePlan[] = []): Bridge {
 let open: { renderer: { destroy(): void } } | null = null;
 afterEach(() => open?.renderer.destroy());
 
-async function mount(w: number, h: number, bridge = fakeBridge(), opts: { initial?: Loaded; snapshot?: Snapshot | null } = {}) {
-  const setup = await testRender(<App initial={opts.initial ?? fixture()} bridge={bridge} snapshot={opts.snapshot} onQuit={() => {}} />, {
-    width: w,
-    height: h,
-  });
+async function mount(
+  w: number,
+  h: number,
+  bridge = fakeBridge(),
+  opts: { initial?: Loaded; snapshot?: Snapshot | null; settings?: Settings; onSettings?: (s: Settings) => void } = {},
+) {
+  const setup = await testRender(
+    <App
+      initial={opts.initial ?? fixture()}
+      bridge={bridge}
+      snapshot={opts.snapshot}
+      settings={opts.settings}
+      onSettings={opts.onSettings}
+      onQuit={() => {}}
+    />,
+    {
+      width: w,
+      height: h,
+    },
+  );
   open = setup;
   await setup.renderOnce();
   const frame = async () => {
@@ -301,5 +317,50 @@ describe("analysis in the app", () => {
     expect(text).toContain("analysis failed: analysis timed out after 30s");
     expect(text).toContain("no analysis");
     expect(text).toContain("1 duplicate");
+  });
+});
+
+describe.each(sizes)("options screen at %ix%i", (w, h) => {
+  test("shows the Truecolor row btop-style and the options legend", async () => {
+    const { frame, press } = await mount(w, h);
+    await press("O");
+    const text = await frame();
+    expect(text).toContain("options");
+    expect(text).toContain("Truecolor");
+    expect(text).toMatch(/← +True +→/);
+    expect(text).toContain("change value");
+    for (const l of text.split("\n")) expect(Bun.stringWidth(l)).toBeLessThanOrEqual(w);
+    expect(text).toMatchSnapshot();
+  });
+
+  test("l flips the value live, reports it for saving, esc closes", async () => {
+    const saved: Settings[] = [];
+    const { frame, press } = await mount(w, h, fakeBridge(), { onSettings: (s) => saved.push(s) });
+    await press("O", "l");
+    expect(await frame()).toMatch(/← +False +→/);
+    expect(saved).toEqual([{ truecolor: false }]);
+    await press("h");
+    expect(await frame()).toMatch(/← +True +→/);
+    await press("escape");
+    await Bun.sleep(100);
+    expect(await frame()).not.toContain("Truecolor");
+  });
+
+  test("with truecolor off every drawn colour is one of the 256", async () => {
+    const { setup, press } = await mount(w, h, fakeBridge(), { settings: { truecolor: false } });
+    await press("O");
+    await setup.renderOnce();
+    const spans = setup.captureSpans().lines.flatMap((l) => l.spans);
+    const grey = (c: { r: number; g: number; b: number }) => c.r === c.g && c.g === c.b;
+    const onGrid = (v: number) => [0, 95, 135, 175, 215, 255].includes(v);
+    for (const s of spans) {
+      for (const c of [s.fg, s.bg]) {
+        if (!c) continue;
+        const to = (x: number) => Math.round(x * 255);
+        const rgb = { r: to(c.r), g: to(c.g), b: to(c.b) };
+        const ok = (grey(rgb) && (rgb.r - 8) % 10 === 0) || (onGrid(rgb.r) && onGrid(rgb.g) && onGrid(rgb.b));
+        expect(ok).toBe(true);
+      }
+    }
   });
 });

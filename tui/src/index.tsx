@@ -5,6 +5,8 @@ import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";
 import { help, parseArgs } from "./args.ts";
 import { createBridge, readSnapshot } from "./bridge.ts";
+import { loadSettings, saveSettings } from "./settings.ts";
+import { detectTruecolor, resolveTruecolor } from "./truecolor.ts";
 import { App } from "./ui.tsx";
 
 async function main(argv: string[]): Promise<number> {
@@ -21,7 +23,10 @@ async function main(argv: string[]): Promise<number> {
     process.stderr.write("keymap-helper-tui: needs a terminal\n");
     return 2;
   }
-  const { analysis, result, timeout, ...rest } = parsed.args;
+  const { analysis, result, timeout, truecolor, ...rest } = parsed.args;
+  const settings = {
+    truecolor: resolveTruecolor({ flag: truecolor, saved: loadSettings().truecolor, detected: detectTruecolor(process.env) }),
+  };
   const inner = createBridge({ ...rest, timeout: timeout ? Number(timeout) : undefined });
   let saved = false;
   const bridge = {
@@ -52,7 +57,16 @@ async function main(argv: string[]): Promise<number> {
   const done = new Promise<void>((resolve) => {
     renderer.once("destroy", () => resolve());
   });
-  createRoot(renderer).render(<App initial={initial} bridge={bridge} snapshot={snapshot} onQuit={() => renderer.destroy()} />);
+  createRoot(renderer).render(
+    <App
+      initial={initial}
+      bridge={bridge}
+      snapshot={snapshot}
+      settings={settings}
+      onSettings={(s) => saveSettings({ truecolor: s.truecolor })}
+      onQuit={() => renderer.destroy()}
+    />,
+  );
   await done;
   if (result) writeFileSync(result, JSON.stringify({ saved }));
   return 0;

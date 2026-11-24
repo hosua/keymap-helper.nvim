@@ -9,11 +9,13 @@ export interface Args {
   result?: string;
   /** Seconds to wait for the analysis (default 30). */
   timeout?: string;
+  /** Force 24-bit colour on or off; beats the saved choice and COLORTERM. */
+  truecolor?: boolean;
 }
 
 export type Parsed = { kind: "run"; args: Args } | { kind: "help" } | { kind: "error"; message: string };
 
-const FLAGS = new Map<string, keyof Args>([
+const FLAGS = new Map<string, Exclude<keyof Args, "truecolor">>([
   ["--root", "root"],
   ["--template", "template"],
   ["--target", "target"],
@@ -29,6 +31,12 @@ export function parseArgs(argv: string[]): Parsed {
     if (a === "-h" || a === "--help") return { kind: "help" };
     const eq = a.indexOf("=");
     const name = eq > 0 ? a.slice(0, eq) : a;
+    if (name === "--truecolor") {
+      const v = eq > 0 ? a.slice(eq + 1) : argv[++i];
+      if (v !== "true" && v !== "false") return { kind: "error", message: "--truecolor needs true or false" };
+      args.truecolor = v === "true";
+      continue;
+    }
     const key = FLAGS.get(name);
     if (!key) return { kind: "error", message: `unknown option ${a}` };
     const value = eq > 0 ? a.slice(eq + 1) : argv[++i];
@@ -43,7 +51,7 @@ export function help(color: boolean): string {
   return `${[
     b("USAGE"),
     "  $ keymap-helper-tui [--root=DIR] [--template=FILE] [--target=FILE] [--analysis=FILE]",
-    "                    [--result=FILE] [--timeout=SECONDS]",
+    "                    [--result=FILE] [--timeout=SECONDS] [--truecolor=true|false]",
     "  $ bun run tui/src/index.tsx --root DIR",
     "",
     "sort the keymaps of a keymap-helper template into categories",
@@ -55,10 +63,12 @@ export function help(color: boolean): string {
     "  --analysis=FILE   analysis snapshot to use instead of starting a scratch nvim",
     '  --result=FILE     on exit, write {"saved": true|false} here',
     "  --timeout=SECONDS give up on the analysis after this long (default: 30)",
+    "  --truecolor=BOOL  force 24-bit colour on or off, beats the saved choice (default: saved, else COLORTERM)",
     "  -h, --help        show this help",
     "",
     b("EXAMPLES"),
     "  $ keymap-helper-tui --root=$HOME/.config/nvim",
     "  $ keymap-helper-tui --root=/tmp/try --template=lua/maps.json",
+    "  $ keymap-helper-tui --truecolor=false",
   ].join("\n")}\n`;
 }

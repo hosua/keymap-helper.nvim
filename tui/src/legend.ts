@@ -27,6 +27,7 @@ export const NORMAL: LegendItem[] = [
   ["P", "swap winner"],
   ["D", "removed defs"],
   ["i", "preview import"],
+  ["O", "options"],
   ["w", "save"],
   ["q", "quit"],
 ];
@@ -38,6 +39,7 @@ export const PREVIEW: LegendItem[] = [
   ["/ n N", "search"],
   ["enter", "apply import"],
   ["i", "leave preview"],
+  ["O", "options"],
   ["q", "quit"],
 ];
 
@@ -66,15 +68,25 @@ export const QUIT: LegendItem[] = [
   ["n esc", "stay"],
 ];
 
+export const OPTIONS: LegendItem[] = [
+  ["j k", "row"],
+  ["h l", "change value"],
+  ["esc", "close"],
+];
+
 export const ANY_KEY: LegendItem[] = [["any key", "close"]];
 
 export const MISSING: LegendItem[] = [
   ["y", "import, keep categories"],
   ["d", "import, all Uncategorized"],
+  ["O", "options"],
   ["q", "quit"],
 ];
 
-export const MISSING_NO_SOURCE: LegendItem[] = [["q", "quit"]];
+export const MISSING_NO_SOURCE: LegendItem[] = [
+  ["O", "options"],
+  ["q", "quit"],
+];
 
 /** Width of one legend cell: padded key, a space, the longest description, two spaces of air. */
 export function cellWidth(items: readonly LegendItem[]): number {
